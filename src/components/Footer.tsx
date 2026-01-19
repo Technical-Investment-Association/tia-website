@@ -5,35 +5,36 @@ const Footer = () => {
 
   return (
     <footer className="w-full bg-[hsl(var(--section-dark))] text-[hsl(var(--popover-foreground))] border-t border-[hsl(var(--divider))]/40">
-      <div className="max-w-[1440px] mx-auto px-6 lg:px-10 py-10 lg:py-14">
-        {/* Top grid */}
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.2fr)] items-start">
-          {/* About TIA */}
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-10 py-12 lg:py-16">
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)] items-start">
+          {/* About */}
           <div className="space-y-4">
-            <h3 className="text-xl font-semibold tracking-tight">
+            <h3 className="font-serif text-[22px] font-normal tracking-tight text-[hsl(var(--popover-foreground))]">
               Technical Investment Association
             </h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">
+            <p className="text-sm leading-relaxed text-[hsl(var(--popover-foreground))]/70 max-w-[480px]">
               Founded in 2025 by technically minded students at DTU, Technical
               Investment Association was created from a shared belief that
               finance should also have a natural home at a technical university.
+            </p>
+            <p className="text-sm leading-relaxed text-[hsl(var(--popover-foreground))]/70 max-w-[480px]">
               We work to bridge the gap between finance, technology and
               innovation by connecting students, companies and ideas.
             </p>
-            <p className="text-sm leading-relaxed text-muted-foreground">
+            <p className="text-sm leading-relaxed text-[hsl(var(--popover-foreground))]/70 max-w-[480px]">
               Through hands-on investing, events and partnerships, we aim to
-              build a community where future engineers and economists learn to
-              navigate capital markets, data and products with both curiosity
-              and responsibility.
+              foster a community where future engineers and economists navigate
+              capital markets, data and products with curiosity and
+              responsibility.
             </p>
           </div>
 
-          {/* Quick links */}
-          <div>
-            <h4 className="text-sm font-semibold mb-4 uppercase tracking-[0.16em] text-[hsl(var(--popover-foreground))]/80">
-              Quick links
+          {/* Quicklinks */}
+          <div className="space-y-3">
+            <h4 className="text-[11px] uppercase tracking-[0.18em] text-[hsl(var(--popover-foreground))]/75">
+              Quicklinks
             </h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <ul className="space-y-2 text-sm text-[hsl(var(--popover-foreground))]/70">
               <li>
                 <a
                   href="/events"
@@ -69,31 +70,23 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Contact + social */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold mb-1 uppercase tracking-[0.16em] text-[hsl(var(--popover-foreground))]/80">
+          {/* Contact */}
+          <div className="space-y-3">
+            <h4 className="text-[11px] uppercase tracking-[0.18em] text-[hsl(var(--popover-foreground))]/75">
               Contact
             </h4>
-            <p className="text-sm text-muted-foreground">
-              For partnerships, events or general inquiries, reach out to us:
-            </p>
-            <a
-              href="mailto:tecnicalinvestmentassociation@gmail.com"
-              className="inline-flex items-center gap-2 text-sm hover:text-[hsl(var(--popover-foreground))] transition-colors"
-            >
-              <Mail className="h-4 w-4" />
-              <span>tecnicalinvestmentassociation@gmail.com</span>
-            </a>
-            <a
-              href="mailto:partnerships@tiaassociation.com"
-              className="inline-flex items-center gap-2 text-sm hover:text-[hsl(var(--popover-foreground))] transition-colors"
-            >
-              <Mail className="h-4 w-4" />
-              <span>partnerships@tiaassociation.com</span>
-            </a>
+            <div className="space-y-2">
+              <a
+                href="mailto:partnerships@tiaassociation.com"
+                className="inline-flex items-center gap-2 text-sm text-[hsl(var(--popover-foreground))]/70 hover:text-[hsl(var(--popover-foreground))] transition-colors"
+              >
+                <Mail className="h-4 w-4" />
+                partnerships@tiaassociation.com
+              </a>
+            </div>
 
             <div className="pt-4">
-              <h5 className="text-xs font-semibold mb-2 uppercase tracking-[0.16em] text-[hsl(var(--popover-foreground))]/70">
+              <h5 className="text-[10px] uppercase tracking-[0.16em] text-[hsl(var(--popover-foreground))]/60 mb-2">
                 Follow
               </h5>
               <div className="flex gap-4">
@@ -101,19 +94,17 @@ const Footer = () => {
                   href="https://www.linkedin.com/company/technical-investment-association/about/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-[hsl(var(--popover-foreground))] transition-colors"
-                  aria-label="LinkedIn"
+                  className="text-[hsl(var(--popover-foreground))]/60 hover:text-[hsl(var(--popover-foreground))] transition-colors"
                 >
-                  <Linkedin size={20} />
+                  <Linkedin size={18} />
                 </a>
                 <a
                   href="https://www.instagram.com/tia_dtu?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-[hsl(var(--popover-foreground))] transition-colors"
-                  aria-label="Instagram"
+                  className="text-[hsl(var(--popover-foreground))]/60 hover:text-[hsl(var(--popover-foreground))] transition-colors"
                 >
-                  <Instagram size={20} />
+                  <Instagram size={18} />
                 </a>
               </div>
             </div>
@@ -121,18 +112,14 @@ const Footer = () => {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-10 pt-6 border-t border-[hsl(var(--divider))]/40 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-xs sm:text-sm text-muted-foreground">
-          <p>
-            &copy; {year} Technical Investment Association. All rights reserved.
-          </p>
-          <div className="flex flex-wrap items-center gap-4">
-            <a
-              href="/privacy"
-              className="hover:text-[hsl(var(--popover-foreground))] transition-colors"
-            >
-              Privacy policy
-            </a>
-          </div>
+        <div className="mt-12 pt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-xs text-[hsl(var(--popover-foreground))]/60">
+          <span>&copy; {year} Technical Investment Association</span>
+          <a
+            href="/privacy"
+            className="hover:text-[hsl(var(--popover-foreground))] transition-colors"
+          >
+            Privacy policy
+          </a>
         </div>
       </div>
     </footer>
