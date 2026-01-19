@@ -52,7 +52,7 @@ const Index = () => {
             showSeparator={false}
             wrapTitle={false}
             wrapDescription={false}
-            height={560}
+            height={600}
             title={
               <div className="h-full flex">
                 <div className="w-full h-[66%] mt-auto flex flex-col items-center text-center gap-6 pb-10">

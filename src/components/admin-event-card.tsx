@@ -46,6 +46,8 @@ interface AdminEventCardProps {
       total_signups?: number;
       total_participants?: number;
     };
+    summary?: string | null;
+    post_image_url?: string | null;
   };
   onEdit: () => void;
   onViewSignups: () => void;
@@ -74,6 +76,7 @@ export const AdminEventCard = ({
   onViewSignups,
 }: AdminEventCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const previewImage = event.post_image_url || event.image_url || null;
 
   const hasRegistration =
     event.registration && event.registration.type !== "none";
@@ -84,26 +87,30 @@ export const AdminEventCard = ({
     ? event.description.replace(/<br\s*\/?>/gi, "\n")
     : null;
 
+  const hasSummary = event.summary && event.summary.trim().length > 0;
+
   return (
     <article className="border-b border-[hsl(var(--divider))]/40 last:border-b-0">
       {/* 12-column grid */}
       <div className="grid grid-cols-12 gap-6 py-8">
         {/* Logo column (2 cols) */}
         <div className="col-span-12 md:col-span-2 flex items-start justify-center">
-          {event.image_url ? (
-            <div className="w-full max-w-[160px] max-h-[160px] flex items-center justify-center">
-              <img
-                src={event.image_url}
-                alt={`${event.title} logo`}
-                loading="lazy"
-                className="max-w-full max-h-full w-auto h-auto object-contain"
-              />
-            </div>
-          ) : (
-            <div className="w-32 h-32 bg-[hsl(var(--divider))]/20 flex items-center justify-center">
-              <Calendar className="w-12 h-12 text-[hsl(var(--divider))]/40" />
-            </div>
-          )}
+          <div className="col-span-12 md:col-span-2 flex items-start justify-center">
+            {previewImage ? (
+              <div className="w-full max-w-[160px] max-h-[160px] flex items-center justify-center">
+                <img
+                  src={previewImage}
+                  alt={`${event.title} logo`}
+                  loading="lazy"
+                  className="max-w-full max-h-full w-auto h-auto object-contain"
+                />
+              </div>
+            ) : (
+              <div className="w-32 h-32 bg-[hsl(var(--divider))]/20 flex items-center justify-center">
+                <Calendar className="w-12 h-12 text-[hsl(var(--divider))]/40" />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Content column (7 cols) */}
@@ -186,6 +193,12 @@ export const AdminEventCard = ({
                 <div className="pb-4 max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-neutral-900 scrollbar-track-transparent">
                   <p className="text-base text-[hsl(var(--section-light-foreground))]/70 leading-relaxed whitespace-pre-line">
                     {normalizedDescription}
+                    {hasSummary && (
+                      <div className="mt-2 text-sm text-[hsl(var(--section-light-foreground))]/75 leading-relaxed">
+                        <span className="font-semibold">Summary: </span>
+                        {event.summary}
+                      </div>
+                    )}
                   </p>
                 </div>
               </div>

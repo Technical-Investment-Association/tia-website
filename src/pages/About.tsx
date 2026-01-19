@@ -26,7 +26,7 @@ const About = () => {
       <Hero
         title="About"
         description="A student-run investment association where finance, technology and innovation meet."
-        height={300}
+        height={600}
       />
 
       {/* Main Content */}

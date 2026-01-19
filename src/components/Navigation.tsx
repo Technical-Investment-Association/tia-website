@@ -41,10 +41,9 @@ const Navigation = () => {
     { name: "Events", path: "/events" },
     { name: "About", path: "/about" },
     { name: "Partnerships", path: "/partnerships" },
-    //{ name: "Research", path: "/research" },
+    // { name: "Research", path: "/research" },
   ];
 
-  // You can reuse this later for an admin drawer:
   const adminLinks = [
     { name: "Dashboard", path: "/admin" },
     { name: "Events", path: "/admin/events" },
@@ -63,6 +62,58 @@ const Navigation = () => {
     setIsDrawerOpen(false);
   };
 
+  const Logo = () => (
+    <Link
+      to="/"
+      className={`flex items-center gap-3 text-sm font-semibold tracking-tight transition-colors duration-300
+        ${isScrolled ? "text-slate-900" : "text-white"}`}
+    >
+      {/* Fixed logo box, scale from top-left */}
+      <div className="relative" style={{ width: 48, height: 48 }}>
+        {/* Big white logo (hero state) */}
+        <img
+          src="/logo-white.png"
+          alt="TIA Logo white"
+          className={`
+            absolute top-0 left-0 object-contain origin-top-left
+            transition-[transform,opacity] duration-[800ms] ease-[cubic-bezier(.22,1,.36,1)]
+            ${
+              isScrolled
+                ? "opacity-0 scale-100 translate-y-0"
+                : "opacity-100 scale-[2.4] translate-y-[6px]"
+            }
+          `}
+          style={{ width: 48, height: 48 }}
+        />
+
+        {/* Dark navbar logo */}
+        <img
+          src="/logo-dark.png"
+          alt="TIA Logo dark"
+          className={`
+            absolute top-0 left-0 object-contain origin-top-left
+            transition-[opacity,transform] duration-[800ms] ease-[cubic-bezier(.22,1,.36,1)]
+            ${
+              isScrolled
+                ? "opacity-100 scale-100 translate-y-0"
+                : "opacity-0 scale-[0.9] translate-y-[2px]"
+            }
+          `}
+          style={{ width: 48, height: 48 }}
+        />
+      </div>
+
+      {/* Title image only visible when white navbar is in */}
+      <img
+        src="/Technical%20Investment%20Association-3.png"
+        alt="Technical Investment Association"
+        className={`hidden sm:block h-6 object-contain transition-opacity duration-300 ${
+          isScrolled ? "opacity-100" : "opacity-0"
+        }`}
+      />
+    </Link>
+  );
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50">
       {/* Sliding white background (no shadow, no border) */}
@@ -76,79 +127,39 @@ const Navigation = () => {
       />
 
       <div className="relative container mx-auto px-4">
-        {/* Main row – fixed height so links/button don’t shift */}
-        <div className="relative flex items-center justify-between h-24 md:h-24 transition-colors duration-300">
-          {/* Left: logo + title image */}
-          <Link
-            to="/"
-            className={`flex items-center gap-3 text-sm font-semibold tracking-tight transition-colors duration-300
-            ${isScrolled ? "text-slate-900" : "text-white"}`}
-          >
-            {/* Fixed logo box, scale from top-left */}
-            <div className="relative" style={{ width: 48, height: 48 }}>
-              {/* Big white logo (hero state) */}
-              <img
-                src="/logo-white.png"
-                alt="TIA Logo white"
-                className={`
-      absolute top-0 left-0 object-contain origin-top-left
-      transition-[transform,opacity] duration-[800ms] ease-[cubic-bezier(.22,1,.36,1)]
-      ${
-        isScrolled
-          ? "opacity-0 scale-100 translate-y-0"
-          : "opacity-100 scale-[2.4] translate-y-[6px]"
-      }
-    `}
-                style={{ width: 48, height: 48 }}
-              />
-
-              {/* Dark navbar logo */}
-              <img
-                src="/logo-dark.png"
-                alt="TIA Logo dark"
-                className={`
-      absolute top-0 left-0 object-contain origin-top-left
-      transition-[opacity,transform] duration-[800ms] ease-[cubic-bezier(.22,1,.36,1)]
-      ${
-        isScrolled
-          ? "opacity-100 scale-100 translate-y-0"
-          : "opacity-0 scale-[0.9] translate-y-[2px]"
-      }
-    `}
-                style={{ width: 48, height: 48 }}
-              />
+        {/* Main row – height fixed; we branch desktop vs mobile/tablet */}
+        <div className="relative h-24 md:h-24 transition-colors duration-300">
+          {/* Desktop layout: 2-column grid (perfect half alignment) */}
+          <div className="hidden lg:grid grid-cols-2 items-center h-full">
+            {/* Left half: logo */}
+            <div className="flex items-center">
+              <Logo />
             </div>
 
-            {/* Title image only visible when white navbar is in */}
-            <img
-              src="/Technical%20Investment%20Association-3.png"
-              alt="Technical Investment Association"
-              className={`hidden sm:block h-6 object-contain transition-opacity duration-300 ${
-                isScrolled ? "opacity-100" : "opacity-0"
-              }`}
-            />
-          </Link>
-
-          {/* Center: nav links, only on large screens so they never overlap the apply button */}
-          <div className="hidden lg:block">
-            <div className="absolute left-[54%] top-1/2 -translate-y-1/2">
-              <div className="flex items-center gap-10">
+            {/* Right half: nav links (left) + Apply (right) */}
+            <div className="flex items-center justify-between">
+              {/* Nav links, left-aligned within right half */}
+              <div
+                className={`
+                  flex items-center transition-[gap] duration-300
+                  ${isScrolled ? "gap-8" : "gap-10"}
+                `}
+              >
                 {navLinks.map((link) => (
                   <Link
                     key={link.path}
                     to={link.path}
                     className={`text-sm font-medium transition-colors duration-200
-                    ${
-                      isScrolled
-                        ? "text-slate-700 hover:text-slate-900"
-                        : "text-white/80 hover:text-white"
-                    }`}
+                      ${
+                        isScrolled
+                          ? "text-slate-700 hover:text-slate-900"
+                          : "text-white/80 hover:text-white"
+                      }`}
                   >
                     {link.name}
                   </Link>
                 ))}
 
-                {/* Admin entry (desktop) – you can later hook this to an admin drawer if you want */}
                 {isAdmin && (
                   <Link
                     to="/admin"
@@ -163,40 +174,46 @@ const Navigation = () => {
                   </Link>
                 )}
               </div>
+
+              {/* Apply button – only desktop */}
+              {showApply && (
+                <div className="flex-shrink-0">
+                  <Link to="/join">
+                    <Button
+                      size="sm"
+                      className={`rounded-full border text-sm px-5 py-1.5 bg-transparent transition-colors duration-200
+                        ${
+                          isScrolled
+                            ? "border-black text-black hover:bg-black hover:text-white"
+                            : "border-white text-white hover:bg-white hover:text-black"
+                        }`}
+                    >
+                      Apply
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Right: Apply button (desktop) + mobile menu button */}
-          <div className="flex items-center gap-4">
-            {/* Apply button – hidden on home before scroll */}
-            {showApply && (
-              <div className="hidden lg:block">
-                <Link to="/join">
-                  <Button
-                    size="sm"
-                    className={`rounded-full border text-sm px-5 py-1.5 bg-transparent transition-colors duration-200
-                    ${
-                      isScrolled
-                        ? "border-black text-black hover:bg-black hover:text-white"
-                        : "border-white text-white hover:bg-white hover:text-black"
-                    }`}
-                  >
-                    Apply
-                  </Button>
-                </Link>
-              </div>
-            )}
+          {/* Mobile / tablet layout (no overlap) */}
+          <div className="flex lg:hidden items-center justify-between h-full">
+            {/* Logo on the left */}
+            <Logo />
 
-            {/* Mobile / small-screen menu button */}
-            <button
-              className={`lg:hidden transition-colors duration-200 ${
-                isScrolled ? "text-slate-900" : "text-white"
-              }`}
-              onClick={openMainDrawer}
-              aria-label="Toggle menu"
-            >
-              {isDrawerOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+            {/* Right: mobile menu (and optionally Apply in future if you want) */}
+            <div className="flex items-center gap-4">
+              {/* Mobile / small-screen menu button */}
+              <button
+                className={`transition-colors duration-200 ${
+                  isScrolled ? "text-slate-900" : "text-white"
+                }`}
+                onClick={openMainDrawer}
+                aria-label="Toggle menu"
+              >
+                {isDrawerOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -262,59 +279,12 @@ const Navigation = () => {
                   )}
                 </>
               )}
-
-              {/* If later you want a dedicated admin drawer, you can swap in this block:
-              {drawerMode === "admin" && (
-                <>
-                  {adminLinks.map((link) => (
-                    <Link
-                      key={link.path}
-                      to={link.path}
-                      className="text-base font-medium text-slate-800 hover:text-slate-950"
-                      onClick={closeDrawer}
-                    >
-                      {link.name}
-                    </Link>
-                  ))}
-
-                  <div className="mt-6 flex flex-col gap-3">
-                    <Button
-                      variant={previewAsPublic ? "outline" : "default"}
-                      size="sm"
-                      className="gap-1 px-2 text-xs justify-center"
-                      onClick={() => setPreviewAsPublic(!previewAsPublic)}
-                    >
-                      {previewAsPublic ? (
-                        <>
-                          <EyeOff className="h-3 w-3" />
-                          Exit preview
-                        </>
-                      ) : (
-                        <>
-                          <Eye className="h-3 w-3" />
-                          Preview as visitor
-                        </>
-                      )}
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="px-2 text-xs justify-center"
-                      onClick={handleSignOut}
-                    >
-                      Sign out
-                    </Button>
-                  </div>
-                </>
-              )}
-              */}
             </nav>
           </div>
         </div>
       )}
 
-      {/* Existing admin strip (still here for now, can be removed once you fully move admin into the drawer) */}
+      {/* Existing admin strip */}
       {!loading && isAdmin && (
         <div className="relative container mx-auto px-4">
           <div className="mt-2 mb-3 rounded-lg border border-[#A6DAEA]/40 bg-[#A6DAEA]/5 px-3 py-2 text-xs flex flex-col gap-2 md:flex-row md:items-center md:justify-between">

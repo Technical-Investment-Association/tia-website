@@ -50,6 +50,8 @@ type EventDoc = {
   published?: boolean;
   archived?: boolean;
   image_url?: string | null;
+  summary?: string | null; // NEW
+  post_image_url?: string | null; // NEW
   registration?: {
     type: "none" | "external" | "email" | "single" | "team";
     status?: "closed" | "open" | "full";
@@ -127,6 +129,8 @@ const AdminEvents = () => {
             published: data.published ?? false,
             archived: data.archived ?? false,
             image_url: data.image_url ?? null,
+            summary: data.summary ?? null, // NEW
+            post_image_url: data.post_image_url ?? null, // NEW
             registration: data.registration ?? { type: "none" },
             stats: data.stats ?? {},
           };

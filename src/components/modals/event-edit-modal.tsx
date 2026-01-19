@@ -1,24 +1,11 @@
 /**
  * EventEditModal.tsx
  *
- * Purpose: Modal for creating and editing events with full registration configuration
- *
- * Features:
- * - Basic event info (title, company, location, date, description)
- * - Image upload to Firebase Storage
- * - Registration type configuration (none, external, email, single, team)
- * - Form field selector for custom signup forms
- * - Publish/Archive controls
- * - Delete event (with confirmation)
- *
- * Props:
- * - isOpen: boolean
- * - onClose: () => void
- * - event: EventDoc | null (null for new event)
- * - onEventUpdated: () => void (callback after save/delete)
+ * Modal for creating and editing events with full registration configuration
+ * + post-event summary and post-event image (for "Some of our most recent events").
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import { X, Upload, Trash2, Save, AlertCircle } from "lucide-react";
 import {
   doc,
@@ -49,10 +36,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormFieldSelector } from "@/components/form-field-selector";
 
-// ============================================================================
-// Types
-// ============================================================================
-
 type RegistrationType = "none" | "external" | "email" | "single" | "team";
 
 interface EventFormData {
@@ -67,8 +50,12 @@ interface EventFormData {
   start_time: string; // HH:MM
   end_time: string; // HH:MM
 
-  // Image
+  // Main Event Image
   image_url: string;
+
+  // Post-event recap
+  summary: string;
+  post_image_url: string;
 
   // Status
   published: boolean;
@@ -107,10 +94,6 @@ interface EventEditModalProps {
   onEventUpdated: () => void;
 }
 
-// ============================================================================
-// EventEditModal Component
-// ============================================================================
-
 export const EventEditModal = ({
   isOpen,
   onClose,
@@ -120,35 +103,43 @@ export const EventEditModal = ({
   const [formData, setFormData] = useState<EventFormData>(getInitialFormData());
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
+
+  const [postImageFile, setPostImageFile] = useState<File | null>(null);
+  const [postImagePreview, setPostImagePreview] = useState<string>("");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Initialize form data when event changes
+  // Initialize form data when event changes / modal opens
   useEffect(() => {
     if (event) {
-      setFormData(eventToFormData(event));
-      setImagePreview(event.image_url || "");
+      const initial = eventToFormData(event);
+      setFormData(initial);
+      setImagePreview(initial.image_url || "");
+      setPostImagePreview(initial.post_image_url || "");
     } else {
-      setFormData(getInitialFormData());
+      const initial = getInitialFormData();
+      setFormData(initial);
       setImagePreview("");
+      setPostImagePreview("");
     }
+
     setImageFile(null);
+    setPostImageFile(null);
     setError(null);
   }, [event, isOpen]);
 
-  // Handle image file selection
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // --- Image handlers -------------------------------------------------------
+
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       setError("Please select an image file");
       return;
     }
-
-    // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
       setError("Image must be less than 5MB");
       return;
@@ -159,20 +150,44 @@ export const EventEditModal = ({
     setError(null);
   };
 
-  // Remove image
   const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreview("");
-    setFormData({ ...formData, image_url: "" });
+    setFormData((prev) => ({ ...prev, image_url: "" }));
   };
 
-  // Save event
+  const handlePostImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please select an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be less than 5MB");
+      return;
+    }
+
+    setPostImageFile(file);
+    setPostImagePreview(URL.createObjectURL(file));
+    setError(null);
+  };
+
+  const handleRemovePostImage = () => {
+    setPostImageFile(null);
+    setPostImagePreview("");
+    setFormData((prev) => ({ ...prev, post_image_url: "" }));
+  };
+
+  // --- Save / Delete --------------------------------------------------------
+
   const handleSave = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // Validate required fields
+      // Basic validation
       if (!formData.title.trim()) {
         throw new Error("Title is required");
       }
@@ -183,7 +198,7 @@ export const EventEditModal = ({
         throw new Error("Date and time are required");
       }
 
-      // Validate registration config
+      // Registration validation
       if (
         formData.registration_type === "external" &&
         !formData.external_url.trim()
@@ -197,7 +212,7 @@ export const EventEditModal = ({
         throw new Error("Email address is required");
       }
 
-      // Upload image if new file selected
+      // Upload main image if new file selected
       let imageUrl = formData.image_url;
       if (imageFile) {
         const imageRef = ref(
@@ -206,6 +221,17 @@ export const EventEditModal = ({
         );
         await uploadBytes(imageRef, imageFile);
         imageUrl = await getDownloadURL(imageRef);
+      }
+
+      // Upload post-event image if new file selected
+      let postImageUrl = formData.post_image_url;
+      if (postImageFile) {
+        const postRef = ref(
+          storage,
+          `event-post-images/${Date.now()}_${postImageFile.name}`
+        );
+        await uploadBytes(postRef, postImageFile);
+        postImageUrl = await getDownloadURL(postRef);
       }
 
       // Create timestamps
@@ -225,12 +251,14 @@ export const EventEditModal = ({
         starts_at: Timestamp.fromDate(startDateTime),
         ends_at: Timestamp.fromDate(endDateTime),
         image_url: imageUrl || null,
+        summary: formData.summary.trim() || null,
+        post_image_url: postImageUrl || null,
         published: formData.published,
         archived: formData.archived,
         updated_at: Timestamp.now(),
       };
 
-      // Add registration config
+      // Registration config
       eventDoc.registration = buildRegistrationConfig(formData);
 
       // Initialize stats if new event
@@ -247,8 +275,8 @@ export const EventEditModal = ({
       if (event) {
         await updateDoc(doc(db, "events", event.id), eventDoc);
       } else {
-        const newEventRef = doc(collection(db, "events"));
-        await setDoc(newEventRef, eventDoc);
+        const newRef = doc(collection(db, "events"));
+        await setDoc(newRef, eventDoc);
       }
 
       onEventUpdated();
@@ -261,7 +289,6 @@ export const EventEditModal = ({
     }
   };
 
-  // Delete event
   const handleDelete = async () => {
     if (!event) return;
 
@@ -269,17 +296,25 @@ export const EventEditModal = ({
     setError(null);
 
     try {
-      // Delete image from storage if exists
+      // Try to delete images from storage (best-effort)
       if (event.image_url) {
         try {
           const imageRef = ref(storage, event.image_url);
           await deleteObject(imageRef);
         } catch (err) {
-          console.warn("Could not delete image:", err);
+          console.warn("Could not delete main image:", err);
         }
       }
 
-      // Delete event document
+      if (event.post_image_url) {
+        try {
+          const postRef = ref(storage, event.post_image_url);
+          await deleteObject(postRef);
+        } catch (err) {
+          console.warn("Could not delete post image:", err);
+        }
+      }
+
       await deleteDoc(doc(db, "events", event.id));
 
       onEventUpdated();
@@ -322,7 +357,7 @@ export const EventEditModal = ({
 
         {/* Form Content */}
         <div className="px-6 py-6 space-y-8">
-          {/* Basic Information Section */}
+          {/* Basic Information */}
           <section>
             <h3 className="text-lg font-semibold mb-4 text-[hsl(var(--section-light-foreground))]">
               Basic Information
@@ -334,22 +369,28 @@ export const EventEditModal = ({
                   id="title"
                   value={formData.title}
                   onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
+                    setFormData((prev) => ({
+                      ...prev,
+                      title: e.target.value,
+                    }))
                   }
                   placeholder="e.g., Investment Banking Case Competition"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="company">Company / Partner</Label>
                   <Input
                     id="company"
                     value={formData.company}
                     onChange={(e) =>
-                      setFormData({ ...formData, company: e.target.value })
+                      setFormData((prev) => ({
+                        ...prev,
+                        company: e.target.value,
+                      }))
                     }
-                    placeholder="e.g., Goldman Sachs"
+                    placeholder="e.g. Goldman Sachs"
                   />
                 </div>
                 <div>
@@ -358,14 +399,17 @@ export const EventEditModal = ({
                     id="location"
                     value={formData.location}
                     onChange={(e) =>
-                      setFormData({ ...formData, location: e.target.value })
+                      setFormData((prev) => ({
+                        ...prev,
+                        location: e.target.value,
+                      }))
                     }
-                    placeholder="e.g., DTU Building 101, Room 023"
+                    placeholder="e.g. DTU Building 101, Room 023"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="start_date">Date *</Label>
                   <Input
@@ -373,7 +417,10 @@ export const EventEditModal = ({
                     type="date"
                     value={formData.start_date}
                     onChange={(e) =>
-                      setFormData({ ...formData, start_date: e.target.value })
+                      setFormData((prev) => ({
+                        ...prev,
+                        start_date: e.target.value,
+                      }))
                     }
                   />
                 </div>
@@ -384,7 +431,10 @@ export const EventEditModal = ({
                     type="time"
                     value={formData.start_time}
                     onChange={(e) =>
-                      setFormData({ ...formData, start_time: e.target.value })
+                      setFormData((prev) => ({
+                        ...prev,
+                        start_time: e.target.value,
+                      }))
                     }
                   />
                 </div>
@@ -395,7 +445,10 @@ export const EventEditModal = ({
                     type="time"
                     value={formData.end_time}
                     onChange={(e) =>
-                      setFormData({ ...formData, end_time: e.target.value })
+                      setFormData((prev) => ({
+                        ...prev,
+                        end_time: e.target.value,
+                      }))
                     }
                   />
                 </div>
@@ -407,7 +460,10 @@ export const EventEditModal = ({
                   id="description"
                   value={formData.description}
                   onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
+                    setFormData((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
                   }
                   placeholder="Describe the event..."
                   rows={4}
@@ -416,7 +472,7 @@ export const EventEditModal = ({
             </div>
           </section>
 
-          {/* Event Image Section */}
+          {/* Event Image */}
           <section>
             <h3 className="text-lg font-semibold mb-4 text-[hsl(var(--section-light-foreground))]">
               Event Image
@@ -459,7 +515,80 @@ export const EventEditModal = ({
             </div>
           </section>
 
-          {/* Registration Section */}
+          {/* Post-event Recap */}
+          <section>
+            <h3 className="text-lg font-semibold mb-4 text-[hsl(var(--section-light-foreground))]">
+              Post-event recap
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="summary">
+                  Summary (used in “Some of our most recent events”)
+                </Label>
+                <Textarea
+                  id="summary"
+                  value={formData.summary}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      summary: e.target.value,
+                    }))
+                  }
+                  placeholder="Short recap of what participants experienced, key themes and takeaways..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Post-event image (optional)</Label>
+                <p className="text-xs text-[hsl(var(--section-light-foreground))]/60">
+                  This image is shown together with the summary in the recap
+                  section. If you don’t add one, we fall back to the main event
+                  image or logo.
+                </p>
+
+                {postImagePreview ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={postImagePreview}
+                      alt="Post-event preview"
+                      className="max-w-xs max-h-48 object-cover border border-[hsl(var(--divider))]"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleRemovePostImage}
+                      className="absolute top-2 right-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-[hsl(var(--divider))] p-6 text-center">
+                    <Upload className="w-10 h-10 mx-auto mb-3 text-[hsl(var(--divider))]" />
+                    <Label
+                      htmlFor="post-image-upload"
+                      className="cursor-pointer"
+                    >
+                      <span className="text-sm text-[hsl(var(--section-light-foreground))]/70">
+                        Click to upload post-event image (max 5MB)
+                      </span>
+                    </Label>
+                    <Input
+                      id="post-image-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePostImageChange}
+                      className="hidden"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* Registration */}
           <section>
             <h3 className="text-lg font-semibold mb-4 text-[hsl(var(--section-light-foreground))]">
               Registration
@@ -470,7 +599,10 @@ export const EventEditModal = ({
                 <Select
                   value={formData.registration_type}
                   onValueChange={(value: RegistrationType) =>
-                    setFormData({ ...formData, registration_type: value })
+                    setFormData((prev) => ({
+                      ...prev,
+                      registration_type: value,
+                    }))
                   }
                 >
                   <SelectTrigger>
@@ -499,7 +631,10 @@ export const EventEditModal = ({
                     type="url"
                     value={formData.external_url}
                     onChange={(e) =>
-                      setFormData({ ...formData, external_url: e.target.value })
+                      setFormData((prev) => ({
+                        ...prev,
+                        external_url: e.target.value,
+                      }))
                     }
                     placeholder="https://example.com/register"
                   />
@@ -518,12 +653,12 @@ export const EventEditModal = ({
                       type="email"
                       value={formData.email_address}
                       onChange={(e) =>
-                        setFormData({
-                          ...formData,
+                        setFormData((prev) => ({
+                          ...prev,
                           email_address: e.target.value,
-                        })
+                        }))
                       }
-                      placeholder="events@tia.com"
+                      placeholder="events@tiaassociation.com"
                     />
                   </div>
                   <div>
@@ -531,18 +666,18 @@ export const EventEditModal = ({
                     <Textarea
                       value={formData.email_requirements.join("\n")}
                       onChange={(e) =>
-                        setFormData({
-                          ...formData,
+                        setFormData((prev) => ({
+                          ...prev,
                           email_requirements: e.target.value
                             .split("\n")
                             .filter(Boolean),
-                        })
+                        }))
                       }
-                      placeholder="CV / Resume&#10;Transcript&#10;Cover Letter"
+                      placeholder={"CV / Resume\nTranscript\nCover letter"}
                       rows={3}
                     />
                     <p className="text-xs text-[hsl(var(--section-light-foreground))]/60 mt-1">
-                      One requirement per line
+                      One requirement per line.
                     </p>
                   </div>
                 </div>
@@ -551,7 +686,7 @@ export const EventEditModal = ({
               {/* Individual Signup */}
               {formData.registration_type === "single" && (
                 <div className="space-y-4 border border-[hsl(var(--divider))] p-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="single_capacity">
                         Capacity (leave empty for unlimited)
@@ -562,12 +697,12 @@ export const EventEditModal = ({
                         min="1"
                         value={formData.single_capacity}
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
+                          setFormData((prev) => ({
+                            ...prev,
                             single_capacity: e.target.value,
-                          })
+                          }))
                         }
-                        placeholder="e.g., 50"
+                        placeholder="e.g. 50"
                       />
                     </div>
                     <div className="flex items-end">
@@ -576,10 +711,10 @@ export const EventEditModal = ({
                           id="single_membership"
                           checked={formData.single_requires_membership}
                           onCheckedChange={(checked) =>
-                            setFormData({
-                              ...formData,
+                            setFormData((prev) => ({
+                              ...prev,
                               single_requires_membership: checked as boolean,
-                            })
+                            }))
                           }
                         />
                         <Label
@@ -597,10 +732,10 @@ export const EventEditModal = ({
                     <FormFieldSelector
                       selectedFields={formData.single_required_fields}
                       onChange={(fields) =>
-                        setFormData({
-                          ...formData,
+                        setFormData((prev) => ({
+                          ...prev,
                           single_required_fields: fields,
-                        })
+                        }))
                       }
                     />
                   </div>
@@ -610,7 +745,7 @@ export const EventEditModal = ({
               {/* Team Signup */}
               {formData.registration_type === "team" && (
                 <div className="space-y-4 border border-[hsl(var(--divider))] p-4">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="team_max_teams">Max Teams</Label>
                       <Input
@@ -619,10 +754,10 @@ export const EventEditModal = ({
                         min="1"
                         value={formData.team_max_teams}
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
+                          setFormData((prev) => ({
+                            ...prev,
                             team_max_teams: e.target.value,
-                          })
+                          }))
                         }
                         placeholder="Unlimited"
                       />
@@ -635,10 +770,10 @@ export const EventEditModal = ({
                         min="1"
                         value={formData.team_min_size}
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
+                          setFormData((prev) => ({
+                            ...prev,
                             team_min_size: e.target.value,
-                          })
+                          }))
                         }
                       />
                     </div>
@@ -650,10 +785,10 @@ export const EventEditModal = ({
                         min="1"
                         value={formData.team_max_size}
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
+                          setFormData((prev) => ({
+                            ...prev,
                             team_max_size: e.target.value,
-                          })
+                          }))
                         }
                       />
                     </div>
@@ -665,10 +800,10 @@ export const EventEditModal = ({
                         id="team_lead_member"
                         checked={formData.team_lead_must_be_member}
                         onCheckedChange={(checked) =>
-                          setFormData({
-                            ...formData,
+                          setFormData((prev) => ({
+                            ...prev,
                             team_lead_must_be_member: checked as boolean,
-                          })
+                          }))
                         }
                       />
                       <Label
@@ -684,10 +819,10 @@ export const EventEditModal = ({
                         id="team_all_emails"
                         checked={formData.team_collect_all_emails}
                         onCheckedChange={(checked) =>
-                          setFormData({
-                            ...formData,
+                          setFormData((prev) => ({
+                            ...prev,
                             team_collect_all_emails: checked as boolean,
-                          })
+                          }))
                         }
                       />
                       <Label
@@ -703,10 +838,10 @@ export const EventEditModal = ({
                         id="team_all_names"
                         checked={formData.team_collect_all_names}
                         onCheckedChange={(checked) =>
-                          setFormData({
-                            ...formData,
+                          setFormData((prev) => ({
+                            ...prev,
                             team_collect_all_names: checked as boolean,
-                          })
+                          }))
                         }
                       />
                       <Label
@@ -722,10 +857,10 @@ export const EventEditModal = ({
                         id="team_name_required"
                         checked={formData.team_require_team_name}
                         onCheckedChange={(checked) =>
-                          setFormData({
-                            ...formData,
+                          setFormData((prev) => ({
+                            ...prev,
                             team_require_team_name: checked as boolean,
-                          })
+                          }))
                         }
                       />
                       <Label
@@ -742,10 +877,10 @@ export const EventEditModal = ({
                     <FormFieldSelector
                       selectedFields={formData.team_required_fields}
                       onChange={(fields) =>
-                        setFormData({
-                          ...formData,
+                        setFormData((prev) => ({
+                          ...prev,
                           team_required_fields: fields,
-                        })
+                        }))
                       }
                     />
                   </div>
@@ -754,7 +889,7 @@ export const EventEditModal = ({
             </div>
           </section>
 
-          {/* Status Section */}
+          {/* Status */}
           <section>
             <h3 className="text-lg font-semibold mb-4 text-[hsl(var(--section-light-foreground))]">
               Status
@@ -765,7 +900,10 @@ export const EventEditModal = ({
                   id="published"
                   checked={formData.published}
                   onCheckedChange={(checked) =>
-                    setFormData({ ...formData, published: checked as boolean })
+                    setFormData((prev) => ({
+                      ...prev,
+                      published: checked as boolean,
+                    }))
                   }
                 />
                 <Label htmlFor="published" className="cursor-pointer">
@@ -777,7 +915,10 @@ export const EventEditModal = ({
                   id="archived"
                   checked={formData.archived}
                   onCheckedChange={(checked) =>
-                    setFormData({ ...formData, archived: checked as boolean })
+                    setFormData((prev) => ({
+                      ...prev,
+                      archived: checked as boolean,
+                    }))
                   }
                 />
                 <Label htmlFor="archived" className="cursor-pointer">
@@ -787,7 +928,7 @@ export const EventEditModal = ({
             </div>
           </section>
 
-          {/* Delete Section (only for existing events) */}
+          {/* Danger Zone */}
           {event && (
             <section className="border-t border-red-200 pt-6">
               <h3 className="text-lg font-semibold mb-2 text-red-700">
@@ -856,9 +997,9 @@ export const EventEditModal = ({
   );
 };
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
+// ---------------------------------------------------------------------------
+// Helper functions
+// ---------------------------------------------------------------------------
 
 function getInitialFormData(): EventFormData {
   return {
@@ -870,6 +1011,8 @@ function getInitialFormData(): EventFormData {
     start_time: "",
     end_time: "",
     image_url: "",
+    summary: "",
+    post_image_url: "",
     published: false,
     archived: false,
     registration_type: "none",
@@ -903,6 +1046,8 @@ function eventToFormData(event: any): EventFormData {
     start_time: startDate.toTimeString().slice(0, 5),
     end_time: endDate ? endDate.toTimeString().slice(0, 5) : "",
     image_url: event.image_url || "",
+    summary: event.summary || "",
+    post_image_url: event.post_image_url || "",
     published: event.published ?? false,
     archived: event.archived ?? false,
     registration_type: event.registration?.type || "none",
@@ -954,7 +1099,7 @@ function buildRegistrationConfig(formData: EventFormData): any {
     return {
       ...base,
       capacity: formData.single_capacity
-        ? parseInt(formData.single_capacity)
+        ? parseInt(formData.single_capacity, 10)
         : null,
       requires_membership: formData.single_requires_membership,
       required_fields: formData.single_required_fields,
@@ -965,10 +1110,10 @@ function buildRegistrationConfig(formData: EventFormData): any {
     return {
       ...base,
       max_teams: formData.team_max_teams
-        ? parseInt(formData.team_max_teams)
+        ? parseInt(formData.team_max_teams, 10)
         : null,
-      min_team_size: parseInt(formData.team_min_size),
-      max_team_size: parseInt(formData.team_max_size),
+      min_team_size: parseInt(formData.team_min_size, 10),
+      max_team_size: parseInt(formData.team_max_size, 10),
       team_lead_must_be_member: formData.team_lead_must_be_member,
       collect_all_emails: formData.team_collect_all_emails,
       collect_all_names: formData.team_collect_all_names,
