@@ -35,7 +35,7 @@ import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { FinisherBackground } from "@/components/ui/finisher-background";
 import { EventCardSkeleton } from "@/components/event-card-skeleton";
 import { EventCardCompact } from "@/components/event-card-compact";
-import { useUpcomingEvents } from "@/hooks/useupcomingevents";
+import { useUpcomingEvents } from "@/hooks/useUpcomingEvents";
 
 const Index = () => {
   const { events, loading: eventsLoading, error } = useUpcomingEvents(3);
