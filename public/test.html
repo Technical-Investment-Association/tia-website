@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinisherHeader Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: Arial, sans-serif;
+    }
+    
+    /* The hero section that will contain the animation */
+    .header.finisher-header {
+      width: 100%;
+      height: 400px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* Content on top of the animation */
+    .hero-content {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      color: white;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    
+    .hero-content h1 {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    
+    .hero-content p {
+      font-size: 20px;
+      opacity: 0.9;
+    }
+    
+    /* Some content below to verify the canvas doesn't break layout */
+    .content {
+      padding: 40px;
+      background: white;
+    }
+  </style>
+</head>
+<body>
+  <!-- The finisher-header class tells the library to render here -->
+  <div class="header finisher-header">
+    <div class="hero-content">
+      <h1>Test Animation</h1>
+      <p>You should see moving particles in the background</p>
+    </div>
+  </div>
+  
+  <div class="content">
+    <h2>Content Below</h2>
+    <p>If you see this, the canvas didn't break the layout.</p>
+    <p>Open DevTools console to see debug messages.</p>
+  </div>
+
+  <!-- Load the FinisherHeader library -->
+  <script src="/finisher-header.es5.min.js"></script>
+  
+  <!-- Initialize the animation -->
+  <script>
+    console.log('🔧 Initializing FinisherHeader test...');
+    console.log('📦 FinisherHeader loaded?', typeof window.FinisherHeader);
+    
+    // Wait a moment for DOM to be ready
+    setTimeout(() => {
+      const element = document.querySelector('.finisher-header');
+      console.log('📍 Target element:', element);
+      console.log('📐 Element dimensions:', element?.clientWidth, 'x', element?.clientHeight);
+      
+      try {
+        // Initialize with YOUR exact settings from Finisher website
+        new FinisherHeader({
+          "count": 13,
+          "size": {
+            "min": 1300,
+            "max": 1500,
+            "pulse": 0
+          },
+          "speed": {
+            "x": {
+              "min": 0.6,
+              "max": 3
+            },
+            "y": {
+              "min": 0.6,
+              "max": 3
+            }
+          },
+          "colors": {
+            "background": "#173c40",
+            "particles": [
+              "#21494d",
+              "#328488"
+            ]
+          },
+          "blending": "overlay",
+          "opacity": {
+            "center": 0.6,
+            "edge": 0
+          },
+          "skew": 0,
+          "shapes": [
+            "c"
+          ]
+        });
+        
+        console.log('✅ FinisherHeader initialized');
+        
+        // Check if canvas was created
+        setTimeout(() => {
+          const canvas = document.querySelector('#finisher-canvas');
+          console.log('🎨 Canvas element:', canvas);
+          if (canvas) {
+            console.log('📊 Canvas size:', canvas.width, 'x', canvas.height);
+            console.log('🎭 Canvas style:', canvas.getAttribute('style'));
+            
+            // Check if canvas context is drawing
+            const ctx = canvas.getContext('2d');
+            console.log('🖌️ Canvas context:', ctx);
+          } else {
+            console.error('❌ Canvas was not created!');
+          }
+        }, 500);
+        
+      } catch (error) {
+        console.error('❌ Initialization error:', error);
+      }
+    }, 100);
+  </script>
+</body>
+</html>

@@ -1,0 +1,210 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   DESIGN TOKENS
+   All colors in HSL. Keep this as the single source of truth.
+   ========================================================================== */
+
+@layer base {
+  :root {
+    /* Surfaces */
+    --background: 0 0% 100%;          /* page background */
+    --foreground: 220 15% 5%;         /* default text on light bg */
+
+    --section-dark: 186 47% 17%;      /* dark section bg */
+
+    --section-light: 0 0% 100%;       /* light section bg */
+    --section-light-foreground: 220 15% 5%;
+
+    --card: 185 40% 22%;
+    --card-foreground: 210 25% 96%;
+
+    --popover: 216 10% 12%;
+    --popover-foreground: 210 20% 93%;
+
+    /* Brand */
+    --primary: 186 47% 17%;
+    --primary-foreground: 220 15% 5%;
+
+    --secondary: 209 53% 11%;
+    --secondary-foreground: 210 20% 93%;
+
+    --accent: 194 62% 78%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Semantic */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    /* Misc / UI */
+    --muted: 213 10% 32%;
+    --muted-foreground: 210 15% 70%;
+
+    --border: 216 10% 25%;
+    --input: 216 10% 15%;
+    --ring: 210 15% 70%;
+
+    --divider: 216 10% 25%;
+    --radius: 0.125rem;
+
+    /* Extra brand tokens (optional) */
+    --charcoal: 216 10% 12%;
+    --steel: 213 10% 32%;
+    --electric: 210 100% 67%;
+    --deep-blue: 209 53% 11%;
+  }
+}
+
+/* ==========================================================================
+   BASE TYPOGRAPHY & GLOBAL STYLES
+   ========================================================================== */
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-inter antialiased font-light;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-serif font-light tracking-tight;
+  }
+
+  h1 {
+    @apply text-[3.5rem] leading-tight;
+  }
+
+  h2 {
+    @apply text-[2.5rem] leading-tight;
+  }
+
+  h3 {
+    @apply text-[1.75rem] leading-snug;
+  }
+}
+
+/* ==========================================================================
+   COMPONENT UTILITIES
+   Reusable building blocks used across pages.
+   ========================================================================== */
+
+@layer components {
+  /* Cards & surfaces */
+  .card {
+    @apply bg-card text-[hsl(var(--card-foreground))] border border-border;
+  }
+
+  .card-surface {
+    background-color: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+  }
+
+  /* Sections */
+  .section-dark {
+    background-color: hsl(var(--section-dark));
+    color: hsl(var(--popover-foreground));
+  }
+
+  .section-light {
+    background-color: hsl(var(--section-light));
+    color: hsl(var(--section-light-foreground));
+  }
+
+  .section-light-muted {
+    color: hsl(var(--section-light-foreground) / 0.7);
+  }
+
+  /* Buttons / Links */
+  .btn-sharp {
+    @apply rounded-none;
+  }
+
+  .story-link {
+    @apply relative inline-block;
+  }
+
+  .story-link::after {
+    content: "";
+    @apply absolute left-0 bottom-0 w-full h-0.5 bg-primary origin-bottom-right;
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+
+  .story-link:hover::after {
+    transform-origin: bottom-left;
+    transform: scaleX(1);
+  }
+
+  /* ==========================================================================
+     GRID SYSTEM
+     Unified layout grid for sections (outer/inner grid pattern).
+     ========================================================================== */
+
+  /* Outer vertical rhythm wrapper */
+  @layer components {
+  /* Outer vertical rhythm wrapper */
+  .grid-outer {
+    @apply grid grid-cols-1 gap-y-16 pb-16 pt-12
+      lg:gap-y-36 lg:pb-36 lg:pt-24;
+  }
+
+  /* Inner 12-column wrapper */
+  .grid-inner {
+    @apply grid grid-cols-12 w-full max-w-[1440px] mx-auto px-6 lg:px-10;
+  }
+}
+
+
+  /* ==========================================================================
+     FINISHER HEADER INTEGRATION
+     ========================================================================== */
+
+  /* Container that holds the FinisherHeader canvas */
+  .header.finisher-header {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    /* Let the FinisherHeader canvas show through */
+    background-color: transparent !important;
+  }
+
+  /* Canvas injected by FinisherHeader */
+  #finisher-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 0 !important;
+  }
+}
+/* Add this to your global CSS file (index.css or globals.css) */
+
+/* Minimal elegant scrollbar for event card descriptions */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #171717 transparent; /* neutral-900 for thumb, transparent for track */
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #171717; /* neutral-900 - minimal black */
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: #262626; /* neutral-800 - slightly lighter on hover */
+}
