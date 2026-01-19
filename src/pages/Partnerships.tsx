@@ -69,9 +69,8 @@ const sections: SectionConfig[] = [
       <>
         <p>
           Our approach emphasises preparation, structure and reflection. Each
-          collaboration—whether a case competition, technical workshop or
-          company presentation—is developed jointly with partners and delivered
-          with attention to academic rigour and professional relevance.
+          collaboration is developed jointly with partners and delivered with
+          attention to academic rigour and professional relevance.
         </p>
         <p>
           We prioritise quality over volume. Events are designed to facilitate
@@ -127,13 +126,8 @@ const sections: SectionConfig[] = [
           engineering, computer science, entrepreneurship and adjacent
           disciplines. These collaborations bring together different academic
           perspectives while keeping a common focus on substance and
-          professional development.
-        </p>
-        <p>
-          Joint events, exchange visits and shared initiatives allow students to
-          build cross-campus networks early in their studies. For partners, this
-          creates access to a broader, yet still curated, community of students
-          who are used to working across fields and institutions.
+          professional development, which allow students to build cross-campus
+          networks early in their studies.
         </p>
       </>
     ),
@@ -304,8 +298,7 @@ const Partnerships = () => {
               <p className="text-base md:text-lg text-[hsl(var(--section-light-foreground))]/80 leading-relaxed">
                 We collaborate with organisations that value substance and
                 preparation, and who see the benefit of engaging with students
-                early—through real problems, careful dialogue and an eye on
-                long-term development.
+                early.
               </p>
             </div>
           </div>
@@ -346,7 +339,7 @@ const Partnerships = () => {
                       <FinisherBackground
                         className="finisher-header-whatwedo"
                         backgroundColor="#ffffff"
-                        particleColors={["#328488", "#ffffff", "#b6a892"]}
+                        particleColors={["#328488", "#ffffff", "#9aa864"]}
                         count={6}
                         particleSize={{ min: 300, max: 600, pulse: 0 }}
                         speed={{
