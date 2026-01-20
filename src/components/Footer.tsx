@@ -22,10 +22,9 @@ const Footer = () => {
               innovation by connecting students, companies and ideas.
             </p>
             <p className="text-sm leading-relaxed text-[hsl(var(--popover-foreground))]/70 max-w-[480px]">
-              Through hands-on investing, events and partnerships, we aim to
-              foster a community where future engineers and economists navigate
-              capital markets, data and products with curiosity and
-              responsibility.
+              Through events and partnerships, we aim to foster a community
+              where future engineers navigate capital markets, data and products
+              with curiosity and responsibility.
             </p>
           </div>
 
