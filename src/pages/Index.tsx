@@ -275,8 +275,8 @@ const Index = () => {
                 <Link to="/partnerships">
                   <Button
                     className="rounded-full px-8 py-3 text-base font-medium
-                       bg-[#f3f2ec] text-light-foreground
-                       hover:bg-[#B0D5CD]
+                       bg-[#B0D5CD] text-light-foreground
+                       hover:bg-black hover:text-white
                        transition-all duration-200"
                   >
                     Partner with us
