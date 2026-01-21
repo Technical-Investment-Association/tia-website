@@ -301,7 +301,7 @@ const Partnerships = () => {
         <section>
           <div className="grid-inner">
             <div className="col-span-12">
-              <div className="flex bg-[#f3f2ec] flex-col-reverse lg:flex-row lg:items-stretch">
+              <div className="flex bg-[#f3f2ec] flex-col-reverse lg:flex-row lg:items-stretch lg:h-section 3xl:h-section-lg">
                 {/* Text side */}
                 <div className="flex px-5 py-10 lg:w-1/2 lg:items-center lg:px-10">
                   <div className="flex flex-col gap-4 lg:mx-auto lg:w-[80%]">

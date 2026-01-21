@@ -2,7 +2,12 @@ import type { Config } from "tailwindcss";
 
 export default {
   darkMode: ["class"],
-  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  content: [
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
+  ],
   prefix: "",
   theme: {
     container: {
@@ -14,8 +19,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        inter: ['Inter', 'sans-serif'],
-        serif: ['Cormorant Garamond', 'serif'],
+        inter: ["Inter", "sans-serif"],
+        serif: ["Cormorant Garamond", "serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -54,7 +59,7 @@ export default {
         charcoal: "hsl(var(--charcoal))",
         steel: "hsl(var(--steel))",
         electric: "hsl(var(--electric))",
-        'deep-blue': "hsl(var(--deep-blue))",
+        "deep-blue": "hsl(var(--deep-blue))",
       },
       borderRadius: {
         lg: "0.125rem",
@@ -84,6 +89,15 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
       },
     },
+    theme: {
+      extend: {
+        height: {
+          section: "540px",
+          "section-lg": "620px",
+        },
+      },
+    },
   },
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
