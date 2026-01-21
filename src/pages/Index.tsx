@@ -169,7 +169,7 @@ const Index = () => {
             </div>
 
             <div className="col-span-12 md:col-span-6 md:col-start-7 space-y-4">
-              <h2 className="text-3xl md:text-4xl font-semibold text-[hsl(var(--section-light-foreground))]">
+              <h2 className="text-3xl md:text-4xl font-medium text-[hsl(var(--section-light-foreground))]">
                 Develop skills for the future of finance
               </h2>
               <p className="text-lg text-[hsl(var(--section-light-foreground))]/70 leading-relaxed">
@@ -184,12 +184,13 @@ const Index = () => {
         </section>
 
         {/* ================================================================
-            WHAT WE DO SECTION
-            ================================================================ */}
+    WHAT WE DO SECTION
+    ================================================================ */}
         <section>
           <div className="grid-inner">
             <div className="col-span-12">
               <div className="flex bg-[#f3f2ec] flex-col-reverse lg:flex-row-reverse lg:items-stretch xl:h-[540px] 3xl:h-[620px]">
+                {/* Visual side */}
                 <div className="w-full flex-grow lg:h-full lg:w-1/2">
                   <figure className="relative w-full overflow-hidden aspect-square lg:h-full">
                     <FinisherBackground
@@ -208,43 +209,34 @@ const Index = () => {
                   </figure>
                 </div>
 
+                {/* Text side */}
                 <div className="flex px-5 py-10 lg:w-1/2 lg:items-center lg:px-10">
-                  <div className="flex flex-col gap-3 lg:mx-auto lg:w-[80%] lg:gap-5">
-                    <h2 className="text-balance text-4xl text-font-bold mb-10 md:text-3xl lg:text-4xl text-[hsl(var(--section-light-foreground))]">
+                  <div className="flex flex-col gap-4 lg:mx-auto lg:w-[80%]">
+                    <h2 className="text-3xl md:text-4xl font-serif font-medium mb-2 text-[hsl(var(--section-light-foreground))]">
                       What we do
                     </h2>
 
-                    <div className="space-y-4 text-[hsl(var(--section-light-foreground))]/80 text-sm md:text-base leading-relaxed">
-                      <ul className="space-y-2">
-                        <li>
-                          <span className="font-semibold text-[hsl(var(--section-light-foreground))]">
-                            Events
-                          </span>{" "}
-                          – talks, panels and case nights with companies and
-                          student speakers.
-                        </li>
-                        <li>
-                          <span className="font-semibold text-[hsl(var(--section-light-foreground))]">
-                            Workshops
-                          </span>{" "}
-                          – hands-on sessions in valuation, modeling and data
-                          tools.
-                        </li>
-                        <li>
-                          <span className="font-semibold text-[hsl(var(--section-light-foreground))]">
-                            Network
-                          </span>{" "}
-                          – meet driven students and professionals across
-                          finance and tech.
-                        </li>
-                        <li>
-                          <span className="font-semibold text-[hsl(var(--section-light-foreground))]">
-                            Career development
-                          </span>{" "}
-                          – support for interviews, applications and early
-                          career decisions.
-                        </li>
-                      </ul>
+                    <p className="text-sm md:text-base text-[hsl(var(--section-light-foreground))]/75 leading-relaxed">
+                      TIA is a community for students who want to go deeper into
+                      finance and technology than the standard curriculum. We
+                      organise a focused mix of talks, workshops and smaller
+                      sessions that combine academic thinking with practical
+                      insight from industry and alumni.
+                    </p>
+
+                    <div className="mt-2">
+                      <Link
+                        to="/events"
+                        className="group inline-flex items-center text-sm md:text-base font-medium
+                   text-[hsl(var(--section-light-foreground))]/80
+                   hover:text-[hsl(var(--section-light-foreground))]"
+                      >
+                        <span>Explore our events</span>
+                        <ArrowRight
+                          className="ml-1 h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
+                          aria-hidden="true"
+                        />
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -270,13 +262,13 @@ const Index = () => {
                   <CorporatePartnershipLogoGrid />
                 </div>
 
-                {/* Student club partnerships block */}
+                {/* Student club partnerships block
                 <div>
-                  <h3 className="text-xl font-semibold mb-3 text-center text-[hsl(var(--section-light-foreground))]">
+                  <h3 className="text-xl font-normal mb-3 text-center text-[hsl(var(--section-light-foreground))]">
                     Student club partnerships
                   </h3>
                   <StudentClubPartnershipLogoGrid />
-                </div>
+                </div>*/}
               </div>
 
               <div className="text-center mt-16">
