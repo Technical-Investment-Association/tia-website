@@ -407,12 +407,12 @@ const Partnerships = () => {
                 <div>
                   <CorporatePartnershipLogoGrid />
                 </div>
-                {/* <div>
+                <div>
                   <h3 className="text-xl font-normal mb-3 text-center text-[hsl(var(--section-light-foreground))]">
                     Student club partnerships
                   </h3>
                   <StudentClubPartnershipLogoGrid />
-                </div>*/}
+                </div>
               </div>
             </motion.div>
           </div>
