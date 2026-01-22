@@ -407,6 +407,7 @@ const Partnerships = () => {
                 <div>
                   <CorporatePartnershipLogoGrid />
                 </div>
+                {/* Student club partnerships*/}
                 <div>
                   <h3 className="text-xl font-normal mb-3 text-center text-[hsl(var(--section-light-foreground))]">
                     Student club partnerships
