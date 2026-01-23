@@ -270,7 +270,7 @@ const Partnerships = () => {
                 students who are serious about finance, technology and markets –
                 and connecting them with organisations who value that mindset.
               </p>
-              <p className="text-sm md:text-base text-[hsl(var(--section-light-foreground))]/70 leading-relaxed">
+              <p className="text-sm md:text-lg text-[hsl(var(--section-light-foreground))]/80 leading-relaxed">
                 Whether you are exploring long–term recruitment, want sharper
                 discussions around a specific theme or simply wish to introduce
                 your work to technically minded students, we aim to design
