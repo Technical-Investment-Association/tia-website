@@ -184,7 +184,7 @@ const Navigation = () => {
   // - Desktop: keep your original behavior (only when not at top of home)
   // - Mobile: ALWAYS show Join (including at top of home), because the navbar covers the hero button.
   const showJoinDesktop = !isHome || effectiveScrolled;
-  const showJoinMobile = true;
+  const showJoinMobile = !isHome || effectiveScrolled;
 
   useEffect(() => {
     if (isAdminRoute) {
@@ -583,6 +583,15 @@ const Navigation = () => {
                     </>
                   ) : (
                     <>
+                      {/* Drawer-only: Home */}
+                      <Link to="/" onClick={closeDrawer}>
+                        <DrawerRow>
+                          <span className="text-base font-medium text-slate-800 hover:text-slate-950">
+                            Home
+                          </span>
+                        </DrawerRow>
+                      </Link>
+
                       {navLinks.map((link) => {
                         const hasChildren = !!link.children?.length;
 
@@ -618,6 +627,15 @@ const Navigation = () => {
                           </Link>
                         );
                       })}
+
+                      {/* Drawer-only: Join (not in main navbar) */}
+                      <Link to="/join" onClick={closeDrawer}>
+                        <DrawerRow>
+                          <span className="text-base font-medium text-slate-800 hover:text-slate-950">
+                            Join
+                          </span>
+                        </DrawerRow>
+                      </Link>
 
                       {!loading && isAdmin && (
                         <div className="pt-6">
