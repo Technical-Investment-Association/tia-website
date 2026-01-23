@@ -34,16 +34,17 @@ const AdminLogin = () => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       navigate("/admin/events", { replace: true });
-    } catch (err: any) {
+    } catch (err) {
+      const error = err as { code: string };
       console.error("Login error:", err);
       if (
-        err.code === "auth/invalid-credential" ||
-        err.code === "auth/wrong-password"
+        error.code === "auth/invalid-credential" ||
+        error.code === "auth/wrong-password"
       ) {
         setError("Invalid email or password.");
-      } else if (err.code === "auth/user-not-found") {
+      } else if (error.code === "auth/user-not-found") {
         setError("No account found with this email.");
-      } else if (err.code === "auth/too-many-requests") {
+      } else if (error.code === "auth/too-many-requests") {
         setError("Too many failed attempts. Please try again later.");
       } else {
         setError("Login failed. Please try again.");
