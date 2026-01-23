@@ -99,7 +99,6 @@ const AdminLogin = () => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@tiaassociation.com"
                     autoComplete="email"
                   />
                 </div>
