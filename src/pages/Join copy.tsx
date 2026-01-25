@@ -106,7 +106,19 @@ const Join = () => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updatePrompt, setUpdatePrompt] = useState(false);
-  const [pendingPayload, setPendingPayload] = useState<any | null>(null);
+  const [pendingPayload, setPendingPayload] = useState<{
+    full_name: string;
+    email: string;
+    university: string;
+    study_field: string;
+    study_level: "bachelor" | "master" | "other" | "";
+    grad_year: number | null;
+    interests: string[];
+    career_orientation: string[];
+    engagement_level: EngagementLevel;
+    motivation: string | null;
+    newsletter_consent: boolean;
+  } | null>(null);
 
   const toggleArrayValue = (
     key: "interests" | "careerOrientation",
@@ -144,7 +156,7 @@ const Join = () => {
     }
 
     const payload = {
-      mode: "check",
+      mode: "check" as const,
       data: {
         full_name: formData.fullName,
         email: formData.email.trim(),
@@ -189,9 +201,12 @@ const Join = () => {
       // Fallback
       setError("Unexpected response from server.");
       setSubmitting(false);
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Failed to submit. Please try again.");
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Failed to submit. Please try again.";
+      setError(errorMessage);
       setSubmitting(false);
     }
   };
@@ -234,7 +249,22 @@ const Join = () => {
     );
   }
 
-  async function callMembershipApi(body: any) {
+  async function callMembershipApi(body: {
+    mode: "check" | "create_or_update";
+    data: {
+      full_name: string;
+      email: string;
+      university: string;
+      study_field: string;
+      study_level: "bachelor" | "master" | "other" | "";
+      grad_year: number | null;
+      interests: string[];
+      career_orientation: string[];
+      engagement_level: EngagementLevel;
+      motivation: string | null;
+      newsletter_consent: boolean;
+    };
+  }) {
     const res = await fetch("/api/membership", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -727,8 +757,12 @@ const Join = () => {
                       } else {
                         setError("Unexpected response from server.");
                       }
-                    } catch (err: any) {
-                      setError(err.message || "Failed to update membership.");
+                    } catch (err: unknown) {
+                      const errorMessage =
+                        err instanceof Error
+                          ? err.message
+                          : "Failed to update membership.";
+                      setError(errorMessage);
                     } finally {
                       setSubmitting(false);
                       setUpdatePrompt(false);

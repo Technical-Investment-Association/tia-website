@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebase";
 
-type PartnershipKind = "corporate" | "student_club" | "university_club";
+type PartnershipKind = "corporate" | "student_club";
 
 type PartnershipLogo = {
   id: string;
@@ -132,10 +132,6 @@ export const CorporatePartnershipLogoGrid = () => (
 
 export const StudentClubPartnershipLogoGrid = () => (
   <BasePartnershipLogoGrid kind="student_club" />
-);
-
-export const UniversityClubPartnershipLogoGrid = () => (
-  <BasePartnershipLogoGrid kind="university_club" />
 );
 
 /**

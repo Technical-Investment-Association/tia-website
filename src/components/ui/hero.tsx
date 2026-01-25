@@ -40,6 +40,7 @@ declare global {
   interface Window {
     FinisherHeader?: new (options: Record<string, unknown>) => {
       addParticles?: (count: number) => void;
+      destroy?: () => void;
     };
   }
 }
