@@ -46,9 +46,13 @@ type EventDoc = {
   published?: boolean;
   archived?: boolean;
   image_url?: string | null;
-  apply_url?: string | null;
   summary?: string | null;
   post_image_url?: string | null;
+
+  registration?: {
+    type: "none" | "external" | "email" | "single" | "team";
+    external_url?: string | null;
+  } | null;
 };
 
 // ============================================================================
@@ -183,7 +187,7 @@ const Events = () => {
         const q = query(
           eventsRef,
           where("published", "==", true),
-          orderBy("starts_at", "asc")
+          orderBy("starts_at", "asc"),
         );
 
         const snapshot = await getDocs(q);
@@ -204,9 +208,14 @@ const Events = () => {
             published: data.published,
             archived: data.archived ?? false,
             image_url: data.image_url ?? null,
-            apply_url: data.apply_url ?? null,
             summary: data.summary ?? null,
             post_image_url: data.post_image_url ?? null,
+
+            // THIS is the key:
+            registration: data.registration ?? {
+              type: "none",
+              external_url: null,
+            },
           };
         });
 
@@ -233,7 +242,7 @@ const Events = () => {
   // Categorize events into upcoming and past (memoized)
   const { upcoming: upcomingEvents, past: pastEvents } = useMemo(
     () => categorizeEvents(events),
-    [events]
+    [events],
   );
 
   // Memoize past event cards to prevent re-renders
@@ -249,7 +258,7 @@ const Events = () => {
             prefersReducedMotion={!!prefersReducedMotion}
           />
         )),
-    [pastEvents, prefersReducedMotion]
+    [pastEvents, prefersReducedMotion],
   );
 
   return (

@@ -144,7 +144,7 @@ const Navigation = () => {
   // Drawer “section” state for subpages (future-proof).
   // If you add children to nav items, clicking the parent will show its children.
   const [drawerSectionTitle, setDrawerSectionTitle] = useState<string | null>(
-    null
+    null,
   );
   const [drawerSectionItems, setDrawerSectionItems] = useState<
     NavItem[] | null
@@ -177,7 +177,7 @@ const Navigation = () => {
         // ],
       },
     ],
-    []
+    [],
   );
 
   // Join button visibility:
@@ -364,8 +364,8 @@ const Navigation = () => {
   const drawerTitle = drawerSectionTitle
     ? drawerSectionTitle
     : drawerMode === "admin"
-    ? "Admin"
-    : "Menu";
+      ? "Admin"
+      : "Menu";
 
   const drawerTitleClass =
     drawerMode === "admin" && !drawerSectionTitle
@@ -398,7 +398,7 @@ const Navigation = () => {
     <nav className="fixed top-0 left-0 right-0 z-50">
       {/* White background: always visible on admin routes; slides in on public routes when scrolled */}
       <div
-        className={`absolute inset-0 -z-10 transform transition-transform transition-opacity duration-500 ease-out
+        className={`absolute inset-0 -z-10 transform transition-transform duration-500 ease-out
           ${
             effectiveScrolled
               ? "translate-y-0 opacity-100 bg-white"

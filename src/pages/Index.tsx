@@ -159,7 +159,7 @@ const Index = () => {
                     Community
                   </span>
                   <p className="text-6xl sm:text-7xl font-light leading-none text-[hsl(var(--section-light-foreground))]">
-                    <AnimatedCounter target={130} active={counterActive} />
+                    <AnimatedCounter target={145} active={counterActive} />
                   </p>
                   <p className="text-base text-[hsl(var(--section-light-foreground))]/70">
                     active members
