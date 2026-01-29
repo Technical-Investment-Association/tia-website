@@ -1,13 +1,10 @@
 /**
- * event-card.tsx (OPTIMIZED)
+ * event-card.tsx
  *
- * Optimizations:
- * - GPU-accelerated transitions
- * - Debounced expansion to prevent jank
- * - Memoized date calculations
- * - useCallback for event handlers
- * - Reduced motion support
- * - Better transition timing
+ * External signup behavior:
+ * - If registration.type === "external" AND registration.external_url exists:
+ *     show a "Sign up" button linking directly to that URL (new tab)
+ * - Otherwise: no external sign-up button (your internal flows can be added later)
  */
 
 import { useState, useMemo, useCallback } from "react";
@@ -15,6 +12,8 @@ import { ChevronDown, Clock } from "lucide-react";
 import { Timestamp } from "firebase/firestore";
 import { useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+
+type RegistrationType = "none" | "external" | "email" | "single" | "team";
 
 interface EventCardProps {
   event: {
@@ -27,12 +26,14 @@ interface EventCardProps {
     starts_at: Timestamp;
     ends_at?: Timestamp | null;
     image_url?: string | null;
-    apply_url?: string | null;
+    registration?: {
+      type: RegistrationType;
+      external_url?: string | null;
+    } | null;
   };
   showSignup?: boolean;
 }
 
-// Memoize date formatting functions
 const getDateParts = (ts: Timestamp) => {
   const d = ts.toDate();
   return {
@@ -53,10 +54,9 @@ export const EventCard = ({ event, showSignup = true }: EventCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const prefersReducedMotion = useReducedMotion();
 
-  // Memoize computed values
   const { day, month } = useMemo(
     () => getDateParts(event.starts_at),
-    [event.starts_at]
+    [event.starts_at],
   );
 
   const eyebrow = useMemo(() => event.company || "Event", [event.company]);
@@ -69,8 +69,13 @@ export const EventCard = ({ event, showSignup = true }: EventCardProps) => {
 
   const formattedTime = useMemo(
     () => (event.starts_at ? formatTime(event.starts_at) : null),
-    [event.starts_at]
+    [event.starts_at],
   );
+
+  const externalUrl = useMemo(() => {
+    if (event.registration?.type !== "external") return null;
+    return event.registration?.external_url?.trim() || null;
+  }, [event.registration]);
 
   const hasDetails = !!(
     normalizedDescription ||
@@ -78,12 +83,10 @@ export const EventCard = ({ event, showSignup = true }: EventCardProps) => {
     event.starts_at
   );
 
-  // Memoized toggle handler
   const handleToggle = useCallback(() => {
     setIsExpanded((prev) => !prev);
   }, []);
 
-  // Calculate transition duration based on user preference
   const transitionDuration = prefersReducedMotion ? 0 : 300;
 
   return (
@@ -101,7 +104,6 @@ export const EventCard = ({ event, showSignup = true }: EventCardProps) => {
                   loading="lazy"
                   className="max-w-full max-h-full w-auto h-auto object-contain"
                   style={{
-                    // GPU acceleration
                     transform: "translateZ(0)",
                     backfaceVisibility: "hidden" as const,
                   }}
@@ -111,19 +113,16 @@ export const EventCard = ({ event, showSignup = true }: EventCardProps) => {
               )}
             </div>
 
-            {/* Text block – constrained to never exceed half width */}
+            {/* Text */}
             <div className="flex-1 max-w-full">
-              {/* Eyebrow */}
               <div className="text-xs uppercase tracking-[0.16em] text-[hsl(var(--section-light-foreground))]/60 mb-1">
                 {eyebrow}
               </div>
 
-              {/* Title */}
               <h3 className="text-base md:text-lg font-medium text-[hsl(var(--section-light-foreground))] mb-1">
                 {event.title}
               </h3>
 
-              {/* Expandable block */}
               {hasDetails && (
                 <>
                   <div
@@ -136,10 +135,8 @@ export const EventCard = ({ event, showSignup = true }: EventCardProps) => {
                         : `max-height ${transitionDuration}ms ease-out, opacity ${
                             transitionDuration - 50
                           }ms ease-out`,
-                      // GPU acceleration
                       transform: "translateZ(0)",
                       backfaceVisibility: "hidden" as const,
-                      // Only use will-change when animating
                       willChange: isExpanded ? "max-height, opacity" : "auto",
                     }}
                   >
@@ -163,7 +160,7 @@ export const EventCard = ({ event, showSignup = true }: EventCardProps) => {
                         </p>
                       )}
 
-                      {showSignup && event.apply_url && (
+                      {showSignup && externalUrl && (
                         <div className="pt-3">
                           <Button
                             asChild
@@ -171,7 +168,7 @@ export const EventCard = ({ event, showSignup = true }: EventCardProps) => {
                             className="rounded-full px-4 py-1 text-xs font-medium bg-transparent border border-foreground/40 text-[hsl(var(--section-light-foreground))] hover:bg-foreground hover:text-background transition-colors"
                           >
                             <a
-                              href={event.apply_url}
+                              href={externalUrl}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
@@ -183,19 +180,13 @@ export const EventCard = ({ event, showSignup = true }: EventCardProps) => {
                     </div>
                   </div>
 
-                  {/* Toggle button */}
                   <button
                     type="button"
                     onClick={handleToggle}
                     className="mt-3 inline-flex items-center text-xs md:text-sm font-medium text-[hsl(var(--section-light-foreground))]/70 hover:text-[hsl(var(--section-light-foreground))] transition-colors"
                     aria-expanded={isExpanded}
-                    aria-label={
-                      isExpanded
-                        ? "Show less information"
-                        : "View more information and sign up"
-                    }
                   >
-                    {isExpanded ? "Show less" : "View more and sign up"}
+                    {isExpanded ? "Show less" : "View more"}
                     <ChevronDown
                       className="ml-1 h-4 w-4"
                       style={{
@@ -215,7 +206,7 @@ export const EventCard = ({ event, showSignup = true }: EventCardProps) => {
           </div>
         </div>
 
-        {/* RIGHT HALF – calendar date block */}
+        {/* RIGHT HALF – date */}
         <div className="col-span-12 md:col-span-6 flex md:items-center">
           <div className="text-left md:text-center min-w-[3.5rem]">
             <div className="text-xs uppercase tracking-[0.2em] text-[hsl(var(--section-light-foreground))]/70">
