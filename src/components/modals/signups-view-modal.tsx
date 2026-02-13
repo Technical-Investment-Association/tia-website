@@ -50,6 +50,8 @@ import {
 // ============================================================================
 
 interface EventRegistration {
+  data_retention_until: any;
+  gdpr_consent: any;
   id: string;
   event_id: string;
   registration_type: "single" | "team";
