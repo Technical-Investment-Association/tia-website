@@ -210,8 +210,6 @@ const Events = () => {
             image_url: data.image_url ?? null,
             summary: data.summary ?? null,
             post_image_url: data.post_image_url ?? null,
-
-            // THIS is the key:
             registration: data.registration ?? {
               type: "none",
               external_url: null,
