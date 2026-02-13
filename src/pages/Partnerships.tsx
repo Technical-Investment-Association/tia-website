@@ -18,7 +18,7 @@ import {
 const FinisherBackground = lazy(() =>
   import("@/components/ui/finisher-background").then((module) => ({
     default: module.FinisherBackground,
-  }))
+  })),
 );
 
 type SectionConfig = {
@@ -237,7 +237,7 @@ const Partnerships = () => {
       handleMouseEnter,
       handleMouseLeave,
       handleToggleOpen,
-    ]
+    ],
   );
 
   return (
@@ -247,7 +247,7 @@ const Partnerships = () => {
       <Hero
         title="Partnerships"
         description="Thoughtful collaboration between industry and technical talent at DTU."
-        height={600}
+        height={450}
       />
 
       <main className="grid-outer bg-white">

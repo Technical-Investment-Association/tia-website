@@ -3,6 +3,13 @@
  *
  * Modal for creating and editing events with full registration configuration
  * + post-event summary and post-event image (for "Some of our most recent events").
+ *
+ * Improvements:
+ * - Only allow JPG/PNG/WebP (block HEIC)
+ * - Stores BOTH download URL and storage path:
+ *    - image_url + image_path
+ *    - post_image_url + post_image_path
+ * - Deletes old images reliably using storage paths (best-effort)
  */
 
 import { useState, useEffect, ChangeEvent } from "react";
@@ -38,6 +45,52 @@ import { FormFieldSelector } from "@/components/form-field-selector";
 
 type RegistrationType = "none" | "external" | "email" | "single" | "team";
 
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+
+function isAllowedImageType(mime: string) {
+  return (ALLOWED_IMAGE_TYPES as readonly string[]).includes(mime);
+}
+
+function safeFilename(name: string) {
+  // Keep it storage-path safe-ish; Firebase Storage allows many chars,
+  // but this avoids spaces and oddities.
+  return name
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/[^\w.\-]/g, "");
+}
+
+function makeId() {
+  // Prefer random UUID if available
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const c: any = globalThis.crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
+async function uploadImageToFolder(folder: string, file: File) {
+  const id = makeId();
+  const clean = safeFilename(file.name || "image");
+  const path = `${folder}/${id}_${clean}`;
+
+  // Set explicit contentType to avoid browser quirks
+  const imageRef = ref(storage, path);
+  await uploadBytes(imageRef, file, { contentType: file.type });
+  const url = await getDownloadURL(imageRef);
+
+  return { url, path };
+}
+
+async function deleteByPathBestEffort(path: string | null | undefined) {
+  if (!path) return;
+  try {
+    await deleteObject(ref(storage, path));
+  } catch (err) {
+    console.warn("Could not delete storage object:", path, err);
+  }
+}
+
 interface EventFormData {
   // Basic info
   title: string;
@@ -52,10 +105,12 @@ interface EventFormData {
 
   // Main Event Image
   image_url: string;
+  image_path: string; // NEW: storage path for reliable deletes
 
   // Post-event recap
   summary: string;
   post_image_url: string;
+  post_image_path: string; // NEW: storage path for reliable deletes
 
   // Status
   published: boolean;
@@ -101,6 +156,7 @@ export const EventEditModal = ({
   onEventUpdated,
 }: EventEditModalProps) => {
   const [formData, setFormData] = useState<EventFormData>(getInitialFormData());
+
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
 
@@ -128,20 +184,33 @@ export const EventEditModal = ({
     setImageFile(null);
     setPostImageFile(null);
     setError(null);
+    setShowDeleteConfirm(false);
   }, [event, isOpen]);
 
   // --- Image handlers -------------------------------------------------------
+
+  const validateImageFile = (file: File) => {
+    if (!file) return "No file selected.";
+    if (!file.type) {
+      return "This image type is not supported by your browser. Please upload JPG, PNG, or WebP.";
+    }
+    if (!isAllowedImageType(file.type)) {
+      // HEIC usually lands here
+      return "Please upload a JPG, PNG, or WebP image (HEIC is not supported).";
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      return "Image must be less than 5MB.";
+    }
+    return null;
+  };
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      setError("Please select an image file");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Image must be less than 5MB");
+    const msg = validateImageFile(file);
+    if (msg) {
+      setError(msg);
       return;
     }
 
@@ -153,19 +222,17 @@ export const EventEditModal = ({
   const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreview("");
-    setFormData((prev) => ({ ...prev, image_url: "" }));
+    // Mark removed in form; we delete on save if there was an old path
+    setFormData((prev) => ({ ...prev, image_url: "", image_path: "" }));
   };
 
   const handlePostImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      setError("Please select an image file");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Image must be less than 5MB");
+    const msg = validateImageFile(file);
+    if (msg) {
+      setError(msg);
       return;
     }
 
@@ -177,7 +244,11 @@ export const EventEditModal = ({
   const handleRemovePostImage = () => {
     setPostImageFile(null);
     setPostImagePreview("");
-    setFormData((prev) => ({ ...prev, post_image_url: "" }));
+    setFormData((prev) => ({
+      ...prev,
+      post_image_url: "",
+      post_image_path: "",
+    }));
   };
 
   // --- Save / Delete --------------------------------------------------------
@@ -186,14 +257,14 @@ export const EventEditModal = ({
     setLoading(true);
     setError(null);
 
+    // Keep refs to old paths so we can delete after successful upload/save
+    const oldImagePath = event?.image_path ?? null;
+    const oldPostPath = event?.post_image_path ?? null;
+
     try {
       // Basic validation
-      if (!formData.title.trim()) {
-        throw new Error("Title is required");
-      }
-      if (!formData.location.trim()) {
-        throw new Error("Location is required");
-      }
+      if (!formData.title.trim()) throw new Error("Title is required");
+      if (!formData.location.trim()) throw new Error("Location is required");
       if (!formData.start_date || !formData.start_time || !formData.end_time) {
         throw new Error("Date and time are required");
       }
@@ -214,33 +285,41 @@ export const EventEditModal = ({
 
       // Upload main image if new file selected
       let imageUrl = formData.image_url;
+      let imagePath = formData.image_path;
+
       if (imageFile) {
-        const imageRef = ref(
-          storage,
-          `event-images/${Date.now()}_${imageFile.name}`
-        );
-        await uploadBytes(imageRef, imageFile);
-        imageUrl = await getDownloadURL(imageRef);
+        const uploaded = await uploadImageToFolder("event-images", imageFile);
+        imageUrl = uploaded.url;
+        imagePath = uploaded.path;
       }
 
       // Upload post-event image if new file selected
       let postImageUrl = formData.post_image_url;
+      let postImagePath = formData.post_image_path;
+
       if (postImageFile) {
-        const postRef = ref(
-          storage,
-          `event-post-images/${Date.now()}_${postImageFile.name}`
+        const uploaded = await uploadImageToFolder(
+          "event-post-images",
+          postImageFile,
         );
-        await uploadBytes(postRef, postImageFile);
-        postImageUrl = await getDownloadURL(postRef);
+        postImageUrl = uploaded.url;
+        postImagePath = uploaded.path;
       }
 
       // Create timestamps
       const startDateTime = new Date(
-        `${formData.start_date}T${formData.start_time}`
+        `${formData.start_date}T${formData.start_time}`,
       );
       const endDateTime = new Date(
-        `${formData.start_date}T${formData.end_time}`
+        `${formData.start_date}T${formData.end_time}`,
       );
+
+      if (
+        Number.isNaN(startDateTime.getTime()) ||
+        Number.isNaN(endDateTime.getTime())
+      ) {
+        throw new Error("Invalid date/time format");
+      }
 
       // Build event document
       const eventDoc: any = {
@@ -250,9 +329,16 @@ export const EventEditModal = ({
         description: formData.description.trim(),
         starts_at: Timestamp.fromDate(startDateTime),
         ends_at: Timestamp.fromDate(endDateTime),
+
+        // Image URL for rendering + path for deletion
         image_url: imageUrl || null,
+        image_path: imagePath || null,
+
         summary: formData.summary.trim() || null,
+
         post_image_url: postImageUrl || null,
+        post_image_path: postImagePath || null,
+
         published: formData.published,
         archived: formData.archived,
         updated_at: Timestamp.now(),
@@ -279,11 +365,26 @@ export const EventEditModal = ({
         await setDoc(newRef, eventDoc);
       }
 
+      // Best-effort cleanup of old images IF replaced or removed
+      // - replaced: new path != old path
+      // - removed: new path is empty/null but old existed
+      if (event) {
+        const newMainPath = imagePath || null;
+        const newPostPath = postImagePath || null;
+
+        if (oldImagePath && oldImagePath !== newMainPath) {
+          await deleteByPathBestEffort(oldImagePath);
+        }
+        if (oldPostPath && oldPostPath !== newPostPath) {
+          await deleteByPathBestEffort(oldPostPath);
+        }
+      }
+
       onEventUpdated();
       onClose();
     } catch (err: any) {
       console.error("Failed to save event:", err);
-      setError(err.message || "Failed to save event");
+      setError(err?.message || "Failed to save event");
     } finally {
       setLoading(false);
     }
@@ -296,32 +397,18 @@ export const EventEditModal = ({
     setError(null);
 
     try {
-      // Try to delete images from storage (best-effort)
-      if (event.image_url) {
-        try {
-          const imageRef = ref(storage, event.image_url);
-          await deleteObject(imageRef);
-        } catch (err) {
-          console.warn("Could not delete main image:", err);
-        }
-      }
+      // Delete images from storage using PATHS (reliable)
+      await deleteByPathBestEffort(event.image_path);
+      await deleteByPathBestEffort(event.post_image_path);
 
-      if (event.post_image_url) {
-        try {
-          const postRef = ref(storage, event.post_image_url);
-          await deleteObject(postRef);
-        } catch (err) {
-          console.warn("Could not delete post image:", err);
-        }
-      }
-
+      // Delete Firestore doc
       await deleteDoc(doc(db, "events", event.id));
 
       onEventUpdated();
       onClose();
     } catch (err: any) {
       console.error("Failed to delete event:", err);
-      setError(err.message || "Failed to delete event");
+      setError(err?.message || "Failed to delete event");
     } finally {
       setLoading(false);
       setShowDeleteConfirm(false);
@@ -369,10 +456,7 @@ export const EventEditModal = ({
                   id="title"
                   value={formData.title}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      title: e.target.value,
-                    }))
+                    setFormData((prev) => ({ ...prev, title: e.target.value }))
                   }
                   placeholder="e.g., Investment Banking Case Competition"
                 />
@@ -500,13 +584,13 @@ export const EventEditModal = ({
                   <Upload className="w-12 h-12 mx-auto mb-4 text-[hsl(var(--divider))]" />
                   <Label htmlFor="image-upload" className="cursor-pointer">
                     <span className="text-sm text-[hsl(var(--section-light-foreground))]/70">
-                      Click to upload image (max 5MB)
+                      Click to upload image (JPG/PNG/WebP, max 5MB)
                     </span>
                   </Label>
                   <Input
                     id="image-upload"
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     onChange={handleImageChange}
                     className="hidden"
                   />
@@ -572,13 +656,13 @@ export const EventEditModal = ({
                       className="cursor-pointer"
                     >
                       <span className="text-sm text-[hsl(var(--section-light-foreground))]/70">
-                        Click to upload post-event image (max 5MB)
+                        Click to upload post-event image (JPG/PNG/WebP, max 5MB)
                       </span>
                     </Label>
                     <Input
                       id="post-image-upload"
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp"
                       onChange={handlePostImageChange}
                       className="hidden"
                     />
@@ -1011,8 +1095,10 @@ function getInitialFormData(): EventFormData {
     start_time: "",
     end_time: "",
     image_url: "",
+    image_path: "",
     summary: "",
     post_image_url: "",
+    post_image_path: "",
     published: false,
     archived: false,
     registration_type: "none",
@@ -1046,8 +1132,10 @@ function eventToFormData(event: any): EventFormData {
     start_time: startDate.toTimeString().slice(0, 5),
     end_time: endDate ? endDate.toTimeString().slice(0, 5) : "",
     image_url: event.image_url || "",
+    image_path: event.image_path || "",
     summary: event.summary || "",
     post_image_url: event.post_image_url || "",
+    post_image_path: event.post_image_path || "",
     published: event.published ?? false,
     archived: event.archived ?? false,
     registration_type: event.registration?.type || "none",
@@ -1071,20 +1159,12 @@ function eventToFormData(event: any): EventFormData {
 }
 
 function buildRegistrationConfig(formData: EventFormData): any {
-  const base = {
-    type: formData.registration_type,
-    status: "open",
-  };
+  const base = { type: formData.registration_type, status: "open" };
 
-  if (formData.registration_type === "none") {
-    return base;
-  }
+  if (formData.registration_type === "none") return base;
 
   if (formData.registration_type === "external") {
-    return {
-      ...base,
-      external_url: formData.external_url,
-    };
+    return { ...base, external_url: formData.external_url };
   }
 
   if (formData.registration_type === "email") {

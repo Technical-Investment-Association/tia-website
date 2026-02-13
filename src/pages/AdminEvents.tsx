@@ -159,7 +159,7 @@ const AdminEvents = () => {
   // Categorize events (memoized)
   const { upcoming, past, archived } = useMemo(
     () => categorizeEvents(events),
-    [events]
+    [events],
   );
 
   // Handlers
@@ -200,7 +200,7 @@ const AdminEvents = () => {
       <Hero
         title="Manage Events"
         description="Create, edit, and manage TIA events and registrations."
-        height={300}
+        height={450}
         actions={
           <Button
             size="lg"

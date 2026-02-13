@@ -1,490 +1,336 @@
-import { useEffect, useState } from "react";
-import Navigation from "@/components/Navigation";
-import Footer from "@/components/Footer";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { Label } from "@/components/ui/label";
+/**
+ * AdminPartnerships.tsx
+ *
+ * Admin interface for managing partnerships
+ * Layout intentionally mirrors AdminEvents.tsx:
+ * - Navigation + Hero + white content section
+ * - Sections for Current + Archived
+ * - "Create new" button in Hero
+ * - Edit handled through a modal
+ */
+
+import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
   collection,
-  addDoc,
   onSnapshot,
-  query,
   orderBy,
-  updateDoc,
-  deleteDoc,
-  doc,
-  serverTimestamp,
+  query,
+  Timestamp,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "@/lib/firebase/firebase";
+import { Plus } from "lucide-react";
 
-type PartnershipKind = "corporate" | "student_club" | "university_club";
+import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
+import { Hero } from "@/components/ui/hero";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { db } from "@/lib/firebase/firebase";
+import { useAuth } from "@/contexts/AuthContext";
+import { PartnershipEditModal } from "@/components/modals/partnership-edit-modal";
 
-type Partnership = {
+// ----------------------------------------------------------------------------
+// Types
+// ----------------------------------------------------------------------------
+
+export type PartnershipKind = "corporate" | "student_club";
+
+export type PartnershipDoc = {
   id: string;
   name: string;
   description?: string | null;
   website?: string | null;
-  established_at?: any;
+  established_at?: Timestamp | null;
   logo_url?: string | null;
   published: boolean;
   archived: boolean;
-  created_at?: any;
-  updated_at?: any;
   kind?: PartnershipKind;
+  created_at?: Timestamp | null;
+  updated_at?: Timestamp | null;
 };
 
+// ----------------------------------------------------------------------------
+// Component
+// ----------------------------------------------------------------------------
+
 const AdminPartnerships = () => {
-  const [partnerships, setPartnerships] = useState<Partnership[]>([]);
+  const { isAdmin } = useAuth();
+
+  const [partnerships, setPartnerships] = useState<PartnershipDoc[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showArchived, setShowArchived] = useState(false);
-
-  // form state
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [website, setWebsite] = useState("");
-  const [establishedDate, setEstablishedDate] = useState(""); // "YYYY-MM-DD"
-  const [published, setPublished] = useState(true);
-  const [archived, setArchived] = useState(false);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [kind, setKind] = useState<PartnershipKind>("corporate"); // ✅ moved here
-
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // load partnerships
+  // Modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedPartnership, setSelectedPartnership] =
+    useState<PartnershipDoc | null>(null);
+
   useEffect(() => {
+    if (!isAdmin) return;
+
     const q = query(
       collection(db, "partnerships"),
-      orderBy("created_at", "desc")
+      orderBy("created_at", "desc"),
     );
+
     const unsub = onSnapshot(
       q,
       (snapshot) => {
-        const items: Partnership[] = snapshot.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as any),
-        }));
-        setPartnerships(items);
-        setLoading(false);
-      },
-      (err) => {
-        console.error(err);
-        setError("Failed to load partnerships.");
-        setLoading(false);
-      }
-    );
-    return () => unsub();
-  }, []);
-
-  const resetForm = () => {
-    setEditingId(null);
-    setName("");
-    setDescription("");
-    setWebsite("");
-    setEstablishedDate("");
-    setPublished(true);
-    setArchived(false);
-    setLogoFile(null);
-    setKind("corporate");
-  };
-
-  const openCreateForm = () => {
-    resetForm();
-    setShowForm(true);
-  };
-
-  const openEditForm = (p: Partnership) => {
-    setEditingId(p.id);
-    setName(p.name);
-    setDescription(p.description || "");
-    setWebsite(p.website || "");
-    setEstablishedDate(
-      p.established_at?.toDate
-        ? p.established_at.toDate().toISOString().slice(0, 10)
-        : ""
-    );
-    setPublished(p.published);
-    setArchived(p.archived);
-    setLogoFile(null);
-    setKind(p.kind || "corporate");
-    setShowForm(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setMessage(null);
-    setError(null);
-
-    try {
-      if (!name.trim()) throw new Error("Name is required.");
-
-      const publishedValue = archived ? false : published;
-
-      let establishedTimestamp = null;
-      if (establishedDate) {
-        establishedTimestamp = new Date(establishedDate + "T00:00:00");
-      }
-
-      if (editingId) {
-        // update
-        const docRef = doc(db, "partnerships", editingId);
-        const updateData: any = {
-          name: name.trim(),
-          description: description.trim() || null,
-          website: website.trim() || null,
-          published: publishedValue,
-          archived,
-          established_at: establishedTimestamp ? establishedTimestamp : null,
-          updated_at: serverTimestamp(),
-          kind,
-        };
-
-        if (logoFile) {
-          const ext = logoFile.name.split(".").pop() || "png";
-          const fileName = `logo.${ext}`;
-          const storageRef = ref(
-            storage,
-            `partnerships/${editingId}/${fileName}`
-          );
-          const snap = await uploadBytes(storageRef, logoFile);
-          const url = await getDownloadURL(snap.ref);
-          updateData.logo_url = url;
-        }
-
-        await updateDoc(docRef, updateData);
-        setMessage("Partnership updated.");
-      } else {
-        // create
-        const created_at = serverTimestamp();
-        const docRef = await addDoc(collection(db, "partnerships"), {
-          name: name.trim(),
-          description: description.trim() || null,
-          website: website.trim() || null,
-          published: publishedValue,
-          archived,
-          established_at: establishedTimestamp ? establishedTimestamp : null,
-          logo_url: null,
-          created_at,
-          updated_at: created_at,
-          kind,
+        const items: PartnershipDoc[] = snapshot.docs.map((d) => {
+          const data = d.data() as any;
+          return {
+            id: d.id,
+            name: data.name,
+            description: data.description ?? null,
+            website: data.website ?? null,
+            established_at: data.established_at ?? null,
+            logo_url: data.logo_url ?? null,
+            published: data.published ?? false,
+            archived: data.archived ?? false,
+            kind: data.kind ?? "corporate",
+            created_at: data.created_at ?? null,
+            updated_at: data.updated_at ?? null,
+          };
         });
 
-        if (logoFile) {
-          const ext = logoFile.name.split(".").pop() || "png";
-          const fileName = `logo.${ext}`;
-          const storageRef = ref(
-            storage,
-            `partnerships/${docRef.id}/${fileName}`
-          );
-          const snap = await uploadBytes(storageRef, logoFile);
-          const url = await getDownloadURL(snap.ref);
-          await updateDoc(docRef, {
-            logo_url: url,
-          });
-        }
-
-        setMessage("Partnership created.");
-      }
-
-      resetForm();
-      setShowForm(false);
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Failed to save partnership.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleArchiveToggle = async (p: Partnership) => {
-    try {
-      const docRef = doc(db, "partnerships", p.id);
-      const newArchived = !p.archived;
-      await updateDoc(docRef, {
-        archived: newArchived,
-        published: newArchived ? false : p.published,
-        updated_at: serverTimestamp(),
-      });
-    } catch (err) {
-      console.error(err);
-      setError("Failed to update archive state.");
-    }
-  };
-
-  const handleDelete = async (p: Partnership) => {
-    const sure = window.confirm(
-      "Deleting a partnership is permanent. Are you sure? You can also choose to archive it instead."
+        setPartnerships(items);
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        console.error("Failed to load partnerships:", err);
+        setError("Failed to load partnerships. Please try again later.");
+        setLoading(false);
+      },
     );
-    if (!sure) return;
 
-    try {
-      await deleteDoc(doc(db, "partnerships", p.id));
-    } catch (err) {
-      console.error(err);
-      setError("Failed to delete partnership.");
-    }
+    return () => unsub();
+  }, [isAdmin]);
+
+  const { current, archived } = useMemo(() => {
+    const current = partnerships.filter((p) => !p.archived);
+    const archived = partnerships.filter((p) => p.archived);
+    return { current, archived };
+  }, [partnerships]);
+
+  const handleCreateNew = () => {
+    setSelectedPartnership(null);
+    setEditModalOpen(true);
   };
 
-  const filtered = partnerships.filter((p) =>
-    showArchived ? p.archived : !p.archived
-  );
+  const handleEdit = (p: PartnershipDoc) => {
+    setSelectedPartnership(p);
+    setEditModalOpen(true);
+  };
+
+  const handleUpdated = () => {
+    // onSnapshot keeps this live; no manual refresh required
+  };
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-neutral-600">Access denied. Admin only.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <section className="pt-32 pb-20 px-4 bg-[hsl(var(--section-light))]">
-        <div className="container mx-auto max-w-5xl">
-          <Separator className="w-16 mb-8 bg-[hsl(var(--divider))]" />
-          <header className="mb-8 flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-4xl font-bold mb-2 text-[hsl(var(--section-light-foreground))]">
-                Partnerships Admin
-              </h1>
-              <p className="text-[hsl(var(--section-light-foreground))]/70 max-w-xl">
-                Manage current and archived partnerships, including logos, info,
-                and visibility.
-              </p>
-            </div>
-            <Button onClick={openCreateForm} variant="default">
-              Add new partnership
-            </Button>
-          </header>
+      <Hero
+        title="Manage Partnerships"
+        description="Create, edit, and manage TIA partnerships and logos."
+        height={450}
+        actions={
+          <Button
+            size="lg"
+            onClick={handleCreateNew}
+            className="bg-primary-800 hover:bg-primary-900 text-white"
+          >
+            <Plus className="mr-2 w-5 h-5" />
+            Create New Partnership
+          </Button>
+        }
+      />
 
-          {/* Toggle current vs archived */}
-          <div className="flex items-center gap-4 mb-6">
-            <Button
-              variant={showArchived ? "outline" : "default"}
-              size="sm"
-              onClick={() => setShowArchived(false)}
-            >
-              Current partnerships
-            </Button>
-            <Button
-              variant={showArchived ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowArchived(true)}
-            >
-              Archived partnerships
-            </Button>
-          </div>
-
-          {message && (
-            <p className="text-sm text-emerald-500 mb-4">{message}</p>
-          )}
-          {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
-
-          {/* Form */}
-          {showForm && (
-            <Card className="p-6 mb-8 bg-white border-border">
-              <form className="space-y-4" onSubmit={handleSubmit}>
-                <div className="space-y-2">
-                  <Label htmlFor="kind">Partnership type</Label>
-                  <select
-                    id="kind"
-                    className="border border-input bg-background rounded-md px-3 py-2 text-sm"
-                    value={kind}
-                    onChange={(e) => setKind(e.target.value as PartnershipKind)}
-                  >
-                    <option value="corporate">Corporate partnership</option>
-                    <option value="student_club">Student club</option>
-                    <option value="university_club">University club</option>
-                  </select>
-                  <p className="text-xs text-muted-foreground">
-                    Choose how this partnership should appear on the public
-                    site.
-                  </p>
+      <main className="grid-outer bg-white">
+        <section>
+          <div className="grid-inner">
+            <div className="col-span-12">
+              {loading && (
+                <div className="flex justify-center items-center py-20">
+                  <div className="text-[hsl(var(--section-light-foreground))]/70">
+                    Loading partnerships...
+                  </div>
                 </div>
+              )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="name">Partnership name</Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
+              {error && (
+                <div className="py-10">
+                  <div className="p-4 border border-[hsl(var(--divider))]">
+                    <p className="text-red-700 text-sm">{error}</p>
+                  </div>
                 </div>
+              )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="description">Info / description</Label>
-                  <Textarea
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={3}
-                  />
-                </div>
+              {!loading && !error && (
+                <div className="space-y-16">
+                  {/* Current */}
+                  <div>
+                    <Separator className="w-16 mb-6 bg-[hsl(var(--divider))]" />
+                    <h2 className="text-2xl md:text-3xl font-semibold text-[hsl(var(--section-light-foreground))] mb-8">
+                      Current Partnerships
+                    </h2>
 
-                <div className="space-y-2">
-                  <Label htmlFor="website">Website (optional)</Label>
-                  <Input
-                    id="website"
-                    value={website}
-                    onChange={(e) => setWebsite(e.target.value)}
-                    placeholder="https://..."
-                  />
-                </div>
+                    {current.length === 0 ? (
+                      <p className="text-[hsl(var(--section-light-foreground))]/70 py-10">
+                        No current partnerships.
+                      </p>
+                    ) : (
+                      <div className="border-t border-[hsl(var(--divider))]/40">
+                        {current.map((p, index) => (
+                          <motion.div
+                            key={p.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: index * 0.05 }}
+                          >
+                            <AdminPartnershipRow
+                              partnership={p}
+                              onEdit={() => handleEdit(p)}
+                            />
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="established">Established (date)</Label>
-                  <Input
-                    id="established"
-                    type="date"
-                    value={establishedDate}
-                    onChange={(e) => setEstablishedDate(e.target.value)}
-                  />
-                </div>
+                  {/* Archived */}
+                  {archived.length > 0 && (
+                    <div>
+                      <Separator className="w-16 mb-6 bg-[hsl(var(--divider))]" />
+                      <h2 className="text-2xl md:text-3xl font-semibold text-[hsl(var(--section-light-foreground))] mb-8">
+                        Archived Partnerships
+                      </h2>
 
-                <div className="space-y-2">
-                  <Label>Logo</Label>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      setLogoFile(file);
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Optional, but recommended. PNG/SVG with transparent
-                    background works best.
-                  </p>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={published}
-                      onChange={(e) => setPublished(e.target.checked)}
-                      disabled={archived}
-                    />
-                    <span>Published</span>
-                  </label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={archived}
-                      onChange={(e) => setArchived(e.target.checked)}
-                    />
-                    <span>Archived (auto unpublishes)</span>
-                  </label>
-                </div>
-
-                <div className="flex gap-3 justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      resetForm();
-                      setShowForm(false);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={submitting}>
-                    {submitting
-                      ? editingId
-                        ? "Saving..."
-                        : "Creating..."
-                      : editingId
-                      ? "Save changes"
-                      : "Create partnership"}
-                  </Button>
-                </div>
-              </form>
-            </Card>
-          )}
-
-          {/* List */}
-          {loading ? (
-            <p>Loading partnerships...</p>
-          ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No {showArchived ? "archived" : "current"} partnerships yet.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filtered.map((p) => (
-                <Card
-                  key={p.id}
-                  className="p-4 bg-white border-border flex gap-4 items-center"
-                >
-                  {p.logo_url && (
-                    <img
-                      src={p.logo_url}
-                      alt={p.name}
-                      className="w-20 h-20 object-contain rounded-md border border-muted"
-                    />
+                      <div className="border-t border-[hsl(var(--divider))]/40">
+                        {archived.map((p, index) => (
+                          <motion.div
+                            key={p.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: index * 0.05 }}
+                          >
+                            <AdminPartnershipRow
+                              partnership={p}
+                              onEdit={() => handleEdit(p)}
+                            />
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                  <div className="flex-1">
-                    <h2 className="font-semibold">{p.name}</h2>
-                    {p.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {p.description}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Status:{" "}
-                      {p.archived
-                        ? "Archived"
-                        : p.published
-                        ? "Published"
-                        : "Unpublished"}
-                    </p>
-                    {p.kind && (
-                      <p className="text-xs text-muted-foreground">
-                        Type:{" "}
-                        {p.kind === "student_club"
-                          ? "Student club"
-                          : p.kind === "university_club"
-                          ? "University club"
-                          : "Corporate"}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openEditForm(p)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={p.archived ? "outline" : "secondary"}
-                      onClick={() => handleArchiveToggle(p)}
-                    >
-                      {p.archived ? "Unarchive" : "Archive"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDelete(p)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </Card>
-              ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </section>
+          </div>
+        </section>
+      </main>
 
       <Footer />
+
+      <PartnershipEditModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        partnership={selectedPartnership}
+        onPartnershipUpdated={handleUpdated}
+      />
     </div>
   );
 };
 
 export default AdminPartnerships;
+
+// ----------------------------------------------------------------------------
+// Row component (mirrors “AdminEventCard” vibe but simpler)
+// ----------------------------------------------------------------------------
+
+function kindLabel(kind?: PartnershipKind) {
+  if (kind === "student_club") return "Student club";
+  return "Corporate";
+}
+
+function statusLabel(p: PartnershipDoc) {
+  if (p.archived) return "Archived";
+  if (p.published) return "Published";
+  return "Unpublished";
+}
+
+function AdminPartnershipRow({
+  partnership,
+  onEdit,
+}: {
+  partnership: PartnershipDoc;
+  onEdit: () => void;
+}) {
+  return (
+    <div className="py-6 border-b border-[hsl(var(--divider))]/40 flex flex-col md:flex-row md:items-center gap-5">
+      {/* Logo */}
+      <div className="w-full md:w-44 flex-shrink-0">
+        {partnership.logo_url ? (
+          <div className="h-20 border border-[hsl(var(--divider))] bg-white flex items-center justify-center p-3">
+            <img
+              src={partnership.logo_url}
+              alt={partnership.name}
+              className="max-h-14 w-full object-contain"
+            />
+          </div>
+        ) : (
+          <div className="h-20 border border-dashed border-[hsl(var(--divider))] bg-white flex items-center justify-center text-xs text-[hsl(var(--section-light-foreground))]/60">
+            No logo
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h3 className="text-lg font-semibold text-[hsl(var(--section-light-foreground))]">
+            {partnership.name}
+          </h3>
+          <span className="text-xs px-2 py-1 border border-[hsl(var(--divider))] text-[hsl(var(--section-light-foreground))]/70">
+            {kindLabel(partnership.kind)}
+          </span>
+          <span className="text-xs px-2 py-1 border border-[hsl(var(--divider))] text-[hsl(var(--section-light-foreground))]/70">
+            {statusLabel(partnership)}
+          </span>
+        </div>
+
+        {partnership.description ? (
+          <p className="mt-2 text-sm text-[hsl(var(--section-light-foreground))]/70 line-clamp-2">
+            {partnership.description}
+          </p>
+        ) : (
+          <p className="mt-2 text-sm text-[hsl(var(--section-light-foreground))]/50">
+            No description.
+          </p>
+        )}
+
+        {partnership.website ? (
+          <p className="mt-2 text-xs text-[hsl(var(--section-light-foreground))]/60 break-all">
+            {partnership.website}
+          </p>
+        ) : null}
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-3 md:justify-end">
+        <Button variant="outline" onClick={onEdit}>
+          Edit
+        </Button>
+      </div>
+    </div>
+  );
+}
