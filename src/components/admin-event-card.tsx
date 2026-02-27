@@ -192,15 +192,15 @@ export const AdminEventCard = ({
               >
                 <div className="pb-4 max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-neutral-900 scrollbar-track-transparent">
                   <div className="text-base text-[hsl(var(--section-light-foreground))]/70 leading-relaxed whitespace-pre-line">
-                    {normalizedDescription}
-                  </div>
+                    <p>{normalizedDescription}</p>
 
-                  {hasSummary && (
-                    <div className="mt-2 text-sm text-[hsl(var(--section-light-foreground))]/75 leading-relaxed">
-                      <span className="font-semibold">Summary: </span>
-                      {event.summary}
-                    </div>
-                  )}
+                    {hasSummary && (
+                      <p className="mt-2 text-sm text-[hsl(var(--section-light-foreground))]/75 leading-relaxed">
+                        <span className="font-semibold">Summary: </span>
+                        {event.summary}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
 
