@@ -35,6 +35,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { themeColors } from "@/theme/tokens";
 
 declare global {
   interface Window {
@@ -112,8 +113,8 @@ export function Hero({
             y: { min: 0.3, max: 0.6 },
           },
           colors: {
-            background: "#173c40",
-            particles: ["#21494d", "#328488"],
+            background: themeColors.sectionDark,
+            particles: [themeColors.primaryDeep, themeColors.accentTeal],
           },
           blending: "overlay",
           opacity: {

@@ -47,13 +47,42 @@
     --ring: 210 15% 70%;
 
     --divider: 216 10% 25%;
-    --radius: 0.125rem;
+    --radius: 0px;
 
     /* Extra brand tokens (optional) */
     --charcoal: 216 10% 12%;
     --steel: 213 10% 32%;
     --electric: 210 100% 67%;
     --deep-blue: 209 53% 11%;
+
+    /* Warm section / surfaces (migrated from hex) */
+    --section-cream: 54 20% 94%;           /* #f3f2ec - warm off-white section bg */
+    --surface-warm-mid: 43 24% 87%;       /* #e7e3d6 - gradient mid */
+    --surface-warm-dark: 39 24% 79%;       /* #d6cfbe - gradient dark */
+    --white: 0 0% 100%;                   /* #ffffff */
+
+    /* Brand accent variants */
+    --primary-deep: 186 40% 22%;          /* #21494d - darker teal (particles) */
+    --accent-teal: 183 46% 36%;           /* #328488 */
+    --accent-mint: 170 33% 76%;           /* #B0D5CD */
+    --accent-taupe: 36 18% 64%;           /* #b6a892 */
+    --accent-taupe-light: 37 24% 70%;     /* #c6b9a1 */
+    --accent-olive: 73 29% 53%;           /* #9aa864 */
+
+    /* Particle palette (page-specific hero/particle backgrounds) */
+    --particle-blue: 195 100% 83%;        /* #a7e8ff */
+    --particle-green: 108 43% 91%;        /* #e3f2df */
+    --particle-peach: 14 64% 91%;         /* #f7e0d9 */
+
+    /* Navigation */
+    --nav-active: 25 75% 47%;             /* #D2691E */
+    --nav-active-hover: 25 78% 40%;       /* #b65916 */
+    --nav-link: 28 100% 82%;              /* #FFD2A3 */
+    --nav-link-hover: 30 100% 87%;        /* #FFE0BF */
+
+    /* Scrollbar (neutral-900 / neutral-800) */
+    --scrollbar-thumb: 0 0% 9%;          /* #171717 */
+    --scrollbar-thumb-hover: 0 0% 15%;    /* #262626 */
   }
 }
 
@@ -189,7 +218,7 @@
 /* Minimal elegant scrollbar for event card descriptions */
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: #171717 transparent; /* neutral-900 for thumb, transparent for track */
+  scrollbar-color: hsl(var(--scrollbar-thumb)) transparent;
 }
 
 .scrollbar-thin::-webkit-scrollbar {
@@ -201,10 +230,10 @@
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: #171717; /* neutral-900 - minimal black */
+  background-color: hsl(var(--scrollbar-thumb));
   border-radius: 3px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background-color: #262626; /* neutral-800 - slightly lighter on hover */
+  background-color: hsl(var(--scrollbar-thumb-hover));
 }

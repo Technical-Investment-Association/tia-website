@@ -14,6 +14,9 @@ import {
   CorporatePartnershipLogoGrid,
   StudentClubPartnershipLogoGrid,
 } from "@/components/PartnershipLogoGrid";
+import { themeColors, partnershipsParticleColors } from "@/theme/tokens";
+import { Section } from "@/components/layout/Section";
+import { BeigeSplitCard } from "@/components/layout/BeigeSplitCard";
 
 const FinisherBackground = lazy(() =>
   import("@/components/ui/finisher-background").then((module) => ({
@@ -250,9 +253,9 @@ const Partnerships = () => {
         height={450}
       />
 
-      <main className="grid-outer bg-white">
+      <main className="bg-white">
         {/* Intro section */}
-        <section>
+        <Section>
           <div className="grid-inner py-16 md:py-20">
             <div className="col-span-12 md:col-span-6 mb-10 md:mb-0">
               <p className="text-xs uppercase tracking-[0.2em] text-[hsl(var(--section-light-foreground))]/60 mb-4">
@@ -278,10 +281,10 @@ const Partnerships = () => {
               </p>
             </div>
           </div>
-        </section>
+        </Section>
 
         {/* Stacked sections (accordion) */}
-        <section>
+        <Section>
           <div className="grid-inner pb-16 md:pb-20">
             <motion.div
               className="col-span-12 space-y-4"
@@ -295,99 +298,67 @@ const Partnerships = () => {
               {sectionElements}
             </motion.div>
           </div>
-        </section>
+        </Section>
 
         {/* Beige collaboration section with finisher background */}
-        <section>
-          <div className="grid-inner">
-            <div className="col-span-12">
-              <div className="flex bg-[#f3f2ec] flex-col-reverse lg:flex-row lg:items-stretch lg:h-section 3xl:h-section-lg">
-                {/* Text side */}
-                <div className="flex px-5 py-10 lg:w-1/2 lg:items-center lg:px-10">
-                  <div className="flex flex-col gap-4 lg:mx-auto lg:w-[80%]">
-                    <h2 className="text-2xl md:text-3xl text-[hsl(var(--section-light-foreground))] mb-2">
-                      A partnership based on shared interest
-                    </h2>
-                    <p className="text-sm md:text-base text-[hsl(var(--section-light-foreground))]/80 leading-relaxed">
-                      We are selective about the partnerships we enter. The most
-                      successful collaborations tend to be those where there is
-                      a clear intellectual fit between your work and the
-                      questions our members are curious about.
-                    </p>
-                    <p className="text-sm md:text-base text-[hsl(var(--section-light-foreground))]/80 leading-relaxed">
-                      If you are unsure whether TIA is the right forum, we are
-                      happy to have an initial conversation to explore ideas
-                      without any commitment. From there we can jointly decide
-                      if and how to move forward.
-                    </p>
-                    <div className="mt-4">
-                      <Button
-                        asChild
-                        size="lg"
-                        className="
+        <Section>
+          <BeigeSplitCard
+            title="A partnership based on shared interest"
+            body={
+              <>
+                <p>
+                  We are selective about the partnerships we enter. The most
+                  successful collaborations tend to be those where there is a
+                  clear intellectual fit between your work and the questions our
+                  members are curious about.
+                </p>
+                <p>
+                  If you are unsure whether TIA is the right forum, we are happy
+                  to have an initial conversation to explore ideas without any
+                  commitment. From there we can jointly decide if and how to
+                  move forward.
+                </p>
+              </>
+            }
+            cta={
+              <Button
+                asChild
+                size="lg"
+                className="
     group
     rounded-full px-7 py-2 text-sm md:text-base font-medium
     bg-white text-black border-none
     transition-colors duration-200
     hover:bg-primary hover:text-white
   "
-                      >
-                        <a
-                          href="mailto:partnerships@tiaassociation.com"
-                          className="inline-flex items-center gap-2"
-                        >
-                          Start a conversation
-                          <span
-                            className="
+              >
+                <a
+                  href="mailto:partnerships@tiaassociation.com"
+                  className="inline-flex items-center gap-2"
+                >
+                  Start a conversation
+                  <span
+                    className="
         inline-block transition-transform duration-200 
         group-hover:translate-x-1
       "
-                          >
-                            →
-                          </span>
-                        </a>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Visual side */}
-                <div className="relative h-[260px] w-full overflow-hidden lg:h-auto lg:w-1/2">
-                  <figure className="absolute inset-0">
-                    <Suspense
-                      fallback={
-                        <div className="w-full h-full bg-[#f3f2ec] flex items-center justify-center">
-                          <div className="text-sm text-[hsl(var(--section-light-foreground))]/40">
-                            Loading…
-                          </div>
-                        </div>
-                      }
-                    >
-                      {!prefersReducedMotion && (
-                        <FinisherBackground
-                          className="finisher-header-whatwedo"
-                          backgroundColor="#ffffff"
-                          particleColors={["#328488", "#ffffff", "#9aa864"]}
-                          count={5}
-                          particleSize={{ min: 300, max: 600, pulse: 2 }}
-                          speed={{
-                            x: { min: 0.4, max: 1 },
-                            y: { min: 0.4, max: 1 },
-                          }}
-                          opacity={{ center: 0.9, edge: 0 }}
-                          showDotOverlay={true}
-                        />
-                      )}
-                    </Suspense>
-                  </figure>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+                  >
+                    →
+                  </span>
+                </a>
+              </Button>
+            }
+            animationColors={[
+              themeColors.accentTeal,
+              themeColors.accentTaupe,
+              themeColors.accentOlive,
+            ]}
+            className="lg:h-section 3xl:h-section-lg"
+          />
+        </Section>
 
         {/* Our partners */}
-        <section>
+        <Section>
           <div className="grid-inner pb-20">
             <motion.div
               className="col-span-12"
@@ -416,7 +387,7 @@ const Partnerships = () => {
               </div>
             </motion.div>
           </div>
-        </section>
+        </Section>
       </main>
 
       <Footer />

@@ -2,12 +2,7 @@ import type { Config } from "tailwindcss";
 
 export default {
   darkMode: ["class"],
-  content: [
-    "./pages/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "./app/**/*.{ts,tsx}",
-    "./src/**/*.{ts,tsx}",
-  ],
+  content: ["./index.html", "./src/**/*.{ts,tsx}"],
   prefix: "",
   theme: {
     container: {
@@ -60,11 +55,24 @@ export default {
         steel: "hsl(var(--steel))",
         electric: "hsl(var(--electric))",
         "deep-blue": "hsl(var(--deep-blue))",
+        "section-cream": "hsl(var(--section-cream))",
+        "surface-warm-mid": "hsl(var(--surface-warm-mid))",
+        "surface-warm-dark": "hsl(var(--surface-warm-dark))",
+        "primary-deep": "hsl(var(--primary-deep))",
+        "accent-teal": "hsl(var(--accent-teal))",
+        "accent-mint": "hsl(var(--accent-mint))",
+        "accent-taupe": "hsl(var(--accent-taupe))",
+        "accent-taupe-light": "hsl(var(--accent-taupe-light))",
+        "accent-olive": "hsl(var(--accent-olive))",
+        "nav-active": "hsl(var(--nav-active))",
+        "nav-active-hover": "hsl(var(--nav-active-hover))",
+        "nav-link": "hsl(var(--nav-link))",
+        "nav-link-hover": "hsl(var(--nav-link-hover))",
       },
       borderRadius: {
-        lg: "0.125rem",
-        md: "0.125rem",
-        sm: "0",
+        lg: "0px",
+        md: "0px",
+        sm: "0px",
       },
       keyframes: {
         "accordion-down": {
@@ -87,14 +95,6 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-      },
-    },
-    theme: {
-      extend: {
-        height: {
-          section: "540px",
-          "section-lg": "620px",
-        },
       },
     },
   },

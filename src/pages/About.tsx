@@ -9,6 +9,9 @@ import Footer from "@/components/Footer";
 import { Hero } from "@/components/ui/hero";
 import { motion, useReducedMotion, easeOut } from "framer-motion";
 import { lazy, Suspense } from "react";
+import { themeColors, aboutParticleColors } from "@/theme/tokens";
+import { Section } from "@/components/layout/Section";
+import { BeigeSplitCard } from "@/components/layout/BeigeSplitCard";
 
 const FinisherBackground = lazy(() =>
   import("@/components/ui/finisher-background").then((module) => ({
@@ -38,9 +41,9 @@ const About = () => {
         height={450}
       />
 
-      <main className="grid-outer bg-white">
+      <main className="bg-white">
         {/* Who we are / why founded */}
-        <section>
+        <Section>
           <motion.div
             className="grid-inner py-16 md:py-20 space-y-8 md:space-y-0"
             {...fadeUp}
@@ -74,72 +77,40 @@ const About = () => {
               </p>
             </div>
           </motion.div>
-        </section>
+        </Section>
 
         {/* Mission section with FinisherBackground animation (Partnerships-style) */}
-        <section>
-          <motion.div className="grid-inner" {...fadeUp}>
-            <div className="col-span-12">
-              <div className="flex bg-[#f3f2ec] flex-col-reverse lg:flex-row lg:items-stretch lg:h-section 3xl:h-section-lg">
-                {/* Animated side — same concept as Partnerships, new colours */}
-                <div className="w-full flex-grow lg:w-1/2 pointer-events-none">
-                  <figure className="relative w-full overflow-hidden aspect-square lg:h-full">
-                    <Suspense
-                      fallback={
-                        <div className="w-full h-full bg-[#f3f2ec] flex items-center justify-center">
-                          <div className="text-sm text-[hsl(var(--section-light-foreground))]/40">
-                            Loading…
-                          </div>
-                        </div>
-                      }
-                    >
-                      {!prefersReducedMotion && (
-                        <FinisherBackground
-                          className="finisher-header-about"
-                          backgroundColor="#f3f2ec"
-                          // Softer, “mission-like” palette:
-                          // calm blue, muted green, warm light
-                          particleColors={["#a7e8ff", "#e3f2df", "#f7e0d9"]}
-                          count={6}
-                          particleSize={{ min: 260, max: 520, pulse: 0 }}
-                          speed={{
-                            x: { min: 0.08, max: 0.25 },
-                            y: { min: 0.08, max: 0.25 },
-                          }}
-                          opacity={{ center: 0.95, edge: 0 }}
-                          showDotOverlay={true}
-                        />
-                      )}
-                    </Suspense>
-                  </figure>
-                </div>
-
-                {/* Text side */}
-                <div className="flex px-5 py-10 lg:w-1/2 lg:items-center lg:px-10">
-                  <div className="flex flex-col gap-4 lg:mx-auto lg:w-[80%] text-center lg:text-left">
-                    <h3 className="text-2xl md:text-3xl font-serif font-medium text-[hsl(var(--section-light-foreground))]">
-                      Our mission
-                    </h3>
-                    <p className="text-sm md:text-base text-[hsl(var(--section-light-foreground))]/80 leading-relaxed">
-                      Our mission is to build a community of technically minded
-                      students who want to deepen their understanding of finance
-                      and technology, and to create constructive touchpoints
-                      between students, industry and academia.
-                    </p>
-                    <p className="text-sm md:text-base text-[hsl(var(--section-light-foreground))]/80 leading-relaxed">
-                      We believe that strong analytical foundations and a
-                      collaborative culture lead to better conversations, better
-                      work and better decisions over time.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <Section>
+          <motion.div {...fadeUp}>
+            <BeigeSplitCard
+              title="Our mission"
+              body={
+                <>
+                  <p>
+                    Our mission is to build a community of technically minded
+                    students who want to deepen their understanding of finance
+                    and technology, and to create constructive touchpoints
+                    between students, industry and academia.
+                  </p>
+                  <p>
+                    We believe that strong analytical foundations and a
+                    collaborative culture lead to better conversations, better
+                    work and better decisions over time.
+                  </p>
+                </>
+              }
+              animationColors={[
+                themeColors.particleBlue,
+                themeColors.particleGreen,
+                themeColors.particlePeach,
+              ]}
+              className="lg:h-section 3xl:h-section-lg"
+            />
           </motion.div>
-        </section>
+        </Section>
 
         {/* Core values */}
-        <section>
+        <Section>
           <motion.div className="grid-inner py-16 md:py-20" {...fadeUp}>
             <div className="col-span-12 text-center mb-12">
               <h3 className="text-2xl md:text-3xl font-serif font-medium">
@@ -178,7 +149,7 @@ const About = () => {
               </div>
             </div>
           </motion.div>
-        </section>
+        </Section>
       </main>
 
       <Footer />

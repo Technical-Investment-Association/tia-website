@@ -32,10 +32,12 @@ import {
 } from "@/components/PartnershipLogoGrid";
 import { Hero } from "@/components/ui/hero";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
-import { FinisherBackground } from "@/components/ui/finisher-background";
 import { EventCardSkeleton } from "@/components/event-card-skeleton";
 import { EventCardCompact } from "@/components/event-card-compact";
-import { useUpcomingEvents } from "@/hooks/useUpcomingEvents";
+import { useUpcomingEvents } from "@/hooks/use-upcoming-events";
+import { themeColors } from "@/theme/tokens";
+import { Section } from "@/components/layout/Section";
+import { BeigeSplitCard } from "@/components/layout/BeigeSplitCard";
 
 const Index = () => {
   const { events, loading: eventsLoading, error } = useUpcomingEvents(3);
@@ -68,8 +70,8 @@ const Index = () => {
                       <Button
                         size="lg"
                         className="rounded-full px-8 py-3 text-base font-medium
-                               bg-[#173C40] text-white
-                               hover:bg-gradient-to-r hover:from-[#173C40] hover:to-[#B0D5CD]
+                               bg-primary text-white
+                               hover:bg-gradient-to-r hover:from-primary hover:to-accent-mint
                                transition-all duration-200"
                       >
                         Join the network
@@ -86,11 +88,11 @@ const Index = () => {
       </section>
 
       {/* Unified grid layout for all sections */}
-      <main className="grid-outer bg-white">
+      <main className="bg-white">
         {/* ================================================================
             UPCOMING EVENTS SECTION
             ================================================================ */}
-        <section>
+        <Section>
           <div className="grid-inner">
             <div className="col-span-12">
               <Separator className="w-16 mb-6 bg-[hsl(var(--divider))]" />
@@ -138,12 +140,12 @@ const Index = () => {
               )}
             </div>
           </div>
-        </section>
+        </Section>
 
         {/* ================================================================
             COMMUNITY / SKILLS SECTION
             ================================================================ */}
-        <section>
+        <Section>
           <div className="grid-inner items-center gap-y-10">
             <div className="col-span-12 md:col-span-5 flex justify-center">
               <motion.div
@@ -152,7 +154,7 @@ const Index = () => {
                 viewport={{ once: true, margin: "-80px" }}
                 transition={{ duration: 0.6 }}
                 onViewportEnter={() => setCounterActive(true)}
-                className="max-w-xs w-full bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-8"
+                className="max-w-xs w-full bg-white/80 backdrop-blur-sm px-6 py-8"
               >
                 <div className="flex flex-col items-center gap-4">
                   <span className="text-xs font-medium tracking-[0.2em] uppercase text-[hsl(var(--section-light-foreground))]/60 text-center">
@@ -181,74 +183,50 @@ const Index = () => {
               </p>
             </div>
           </div>
-        </section>
+        </Section>
 
         {/* ================================================================
     WHAT WE DO SECTION
     ================================================================ */}
-        <section>
-          <div className="grid-inner">
-            <div className="col-span-12">
-              <div className="flex bg-[#f3f2ec] flex-col-reverse lg:flex-row-reverse lg:items-stretch xl:h-[540px] 3xl:h-[620px]">
-                {/* Visual side */}
-                <div className="w-full flex-grow lg:h-full lg:w-1/2">
-                  <figure className="relative w-full overflow-hidden aspect-square lg:h-full">
-                    <FinisherBackground
-                      className="finisher-header-whatwedo"
-                      backgroundColor="#ffffff"
-                      particleColors={["#328488", "#ffffff", "#b6a892"]}
-                      count={6}
-                      particleSize={{ min: 300, max: 600, pulse: 0 }}
-                      speed={{
-                        x: { min: 0.1, max: 0.3 },
-                        y: { min: 0.1, max: 0.3 },
-                      }}
-                      opacity={{ center: 0.9, edge: 0 }}
-                      showDotOverlay={true}
-                    />
-                  </figure>
-                </div>
-
-                {/* Text side */}
-                <div className="flex px-5 py-10 lg:w-1/2 lg:items-center lg:px-10">
-                  <div className="flex flex-col gap-4 lg:mx-auto lg:w-[80%]">
-                    <h2 className="text-3xl md:text-4xl font-serif font-medium mb-2 text-[hsl(var(--section-light-foreground))]">
-                      What we do
-                    </h2>
-
-                    <p className="text-sm md:text-base text-[hsl(var(--section-light-foreground))]/75 leading-relaxed">
-                      TIA is a community for students who want to go deeper into
-                      finance and technology than the standard curriculum. We
-                      organise a focused mix of talks, workshops and smaller
-                      sessions that combine academic thinking with practical
-                      insight from industry and alumni.
-                    </p>
-
-                    <div className="mt-2">
-                      <Link
-                        to="/events"
-                        className="group inline-flex items-center text-sm md:text-base font-medium
+        <Section>
+          <BeigeSplitCard
+            title="What we do"
+            body={
+              <p>
+                TIA is a community for students who want to go deeper into
+                finance and technology than the standard curriculum. We organise
+                a focused mix of talks, workshops and smaller sessions that
+                combine academic thinking with practical insight from industry
+                and alumni.
+              </p>
+            }
+            cta={
+              <Link
+                to="/events"
+                className="group inline-flex items-center text-sm md:text-base font-medium
                    text-[hsl(var(--section-light-foreground))]/80
                    hover:text-[hsl(var(--section-light-foreground))]"
-                      >
-                        <span>Explore our events</span>
-                        <ArrowRight
-                          className="ml-1 h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
-                          aria-hidden="true"
-                        />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+              >
+                <span>Explore our events</span>
+                <ArrowRight
+                  className="ml-1 h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
+                  aria-hidden="true"
+                />
+              </Link>
+            }
+            animationColors={[
+              themeColors.accentTeal,
+              themeColors.accentMint,
+              themeColors.accentTaupe,
+            ]}
+            className="xl:h-[540px] 3xl:h-[620px]"
+          />
+        </Section>
 
         {/* ================================================================
             PARTNERSHIPS SECTION
             ================================================================ */}
-        <section>
+        <Section>
           <div className="grid-inner">
             <div className="col-span-12">
               <Separator className="w-16 mb-8 mx-auto bg-[hsl(var(--divider))]" />
@@ -275,7 +253,7 @@ const Index = () => {
                 <Link to="/partnerships">
                   <Button
                     className="rounded-full px-8 py-3 text-base font-medium
-                       bg-[#B0D5CD] text-light-foreground
+                       bg-accent-mint text-[hsl(var(--section-light-foreground))]
                        hover:bg-black hover:text-white
                        transition-all duration-200"
                   >
@@ -285,7 +263,7 @@ const Index = () => {
               </div>
             </div>
           </div>
-        </section>
+        </Section>
       </main>
 
       <Footer />

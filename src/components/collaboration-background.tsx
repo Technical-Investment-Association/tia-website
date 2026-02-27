@@ -22,7 +22,7 @@ const connections: [number, number][] = [
 
 export const CollaborationBackground = () => {
   return (
-    <div className="w-full h-full bg-[#f3f2ec]">
+    <div className="w-full h-full bg-section-cream">
       <svg
         viewBox="0 0 100 100"
         preserveAspectRatio="xMidYMid slice"
@@ -31,9 +31,9 @@ export const CollaborationBackground = () => {
         {/* Soft background gradient */}
         <defs>
           <radialGradient id="collabGradient" cx="50%" cy="40%" r="60%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
-            <stop offset="60%" stopColor="#e7e3d6" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#d6cfbe" stopOpacity="1" />
+            <stop offset="0%" stopColor="hsl(var(--white))" stopOpacity="0.9" />
+            <stop offset="60%" stopColor="hsl(var(--surface-warm-mid))" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="hsl(var(--surface-warm-dark))" stopOpacity="1" />
           </radialGradient>
         </defs>
 
@@ -57,7 +57,7 @@ export const CollaborationBackground = () => {
               y1={from.y}
               x2={to.x}
               y2={to.y}
-              stroke="#b6a892"
+              stroke="hsl(var(--accent-taupe))"
               strokeWidth={0.25}
               initial={{ opacity: 0.3, pathLength: 0.8 }}
               animate={{
@@ -80,7 +80,7 @@ export const CollaborationBackground = () => {
             cx={node.x}
             cy={node.y}
             r={node.r}
-            fill="#c6b9a1"
+            fill="hsl(var(--accent-taupe-light))"
             initial={{ opacity: 0.5, scale: 1 }}
             animate={{
               opacity: [0.3, 0.7, 0.3],
