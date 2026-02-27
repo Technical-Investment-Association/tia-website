@@ -226,11 +226,8 @@ const Index = () => {
               </h2>
 
               <div className="space-y-28">
-                {/* Corporate partnerships block */}
+                {/* Corporate partnerships (no subheading – implied) */}
                 <div>
-                  <h3 className="text-2xl font-normal mb-8 text-center text-[hsl(var(--section-light-foreground))]/65">
-                    Corporate partnerships
-                  </h3>
                   <CorporatePartnershipLogoGrid />
                 </div>
 

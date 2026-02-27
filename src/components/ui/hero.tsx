@@ -33,6 +33,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { useId } from "react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { themeColors } from "@/theme/tokens";
@@ -80,6 +81,8 @@ export function Hero({
   wrapDescription = true,
 }: HeroProps) {
   const containerRef = useRef<HTMLElement>(null);
+  const uniqueId = useId().replace(/:/g, "-");
+  const heroClass = `finisher-header-hero-${uniqueId}`;
   const [initialized, setInitialized] = useState(false);
   const instanceRef = useRef<{ destroy?: () => void } | null>(null);
   const inViewRef = useRef(true);
@@ -89,9 +92,10 @@ export function Hero({
 
     const runInit = () => {
       if (!window.FinisherHeader || !containerRef.current) return false;
+      if (!document.querySelector(`.${heroClass}`)) return false;
       try {
         instanceRef.current = new window.FinisherHeader({
-          className: "finisher-header",
+          className: heroClass,
           count: 4,
           size: {
             min: 1300,
@@ -158,28 +162,29 @@ export function Hero({
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
 
+    let pollCleanup: (() => void) | undefined;
     if (!document.hidden) {
-      if (!runInit()) {
-        const poll = setInterval(() => {
-          if (runInit()) clearInterval(poll);
-        }, 100);
-        const stop = setTimeout(() => clearInterval(poll), 5000);
-        return () => {
-          clearInterval(poll);
-          clearTimeout(stop);
-          io.disconnect();
-          document.removeEventListener("visibilitychange", onVisibilityChange);
-          destroy();
-        };
-      }
+      requestAnimationFrame(() => {
+        if (!runInit()) {
+          const poll = setInterval(() => {
+            if (runInit()) clearInterval(poll);
+          }, 100);
+          const stop = setTimeout(() => clearInterval(poll), 5000);
+          pollCleanup = () => {
+            clearInterval(poll);
+            clearTimeout(stop);
+          };
+        }
+      });
     }
 
     return () => {
+      pollCleanup?.();
       io.disconnect();
       document.removeEventListener("visibilitychange", onVisibilityChange);
       destroy();
     };
-  }, []);
+  }, [heroClass]);
 
   const resolvedHeight =
     typeof height === "number" ? `${height}px` : height ?? "300px";
@@ -187,7 +192,7 @@ export function Hero({
   return (
     <section
       ref={containerRef}
-      className="header finisher-header relative flex w-full items-end"
+      className={cn("header relative flex w-full items-end", heroClass)}
       style={{ width: "100%", height: resolvedHeight }}
     >
       {/* Gradient overlay for better text readability - darker at bottom */}

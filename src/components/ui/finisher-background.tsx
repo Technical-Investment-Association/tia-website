@@ -131,7 +131,11 @@ export const FinisherBackground = ({
       const rect = el.getBoundingClientRect();
       const inView = rect.top < window.innerHeight + 80 && rect.bottom > -80;
       inViewRef.current = inView;
-      if (inView) runInit();
+      if (inView) {
+        requestAnimationFrame(() => {
+          if (el.isConnected) runInit();
+        });
+      }
     }
 
     let lastW = 0;

@@ -197,12 +197,13 @@
      FINISHER HEADER INTEGRATION
      ========================================================================== */
 
-  /* Container that holds the FinisherHeader canvas */
-  .header.finisher-header {
+  /* Container that holds the FinisherHeader canvas (hero and card instances) */
+  .header[class*="finisher-header"],
+  [class*="finisher-header-card"],
+  [class*="finisher-header-background"] {
     position: relative;
     width: 100%;
     overflow: hidden;
-    /* Let the FinisherHeader canvas show through */
     background-color: transparent !important;
   }
 

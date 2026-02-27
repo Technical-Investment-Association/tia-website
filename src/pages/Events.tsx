@@ -14,6 +14,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { ChevronDown } from "lucide-react";
 import {
   collection,
   getDocs,
@@ -95,6 +96,7 @@ const PastEventCard = ({
   index,
   prefersReducedMotion,
 }: PastEventCardProps) => {
+  const [expanded, setExpanded] = useState(false);
   const date = event.starts_at.toDate();
   const formatted = date.toLocaleDateString("en-GB");
   const eyebrow = event.company || "Event";
@@ -111,58 +113,108 @@ const PastEventCard = ({
         delay: index * 0.05,
         ease: "easeOut",
       }}
-      className="group border-t border-[hsl(var(--divider))]/40 pt-6 cursor-pointer"
+      className="border-t border-[hsl(var(--divider))]/40 pt-6"
     >
-      <div className="flex gap-6 items-start">
-        {/* Image – ~1/3 width */}
-        <div className="w-1/3">
-          <div className="w-full aspect-[16/9] bg-[hsl(var(--divider))]/15 overflow-hidden flex items-center justify-center">
-            {imageSrc ? (
-              <img
-                src={imageSrc}
-                alt={event.title}
-                loading="lazy"
-                className="w-full h-full object-cover"
-                style={{
-                  // GPU acceleration
-                  transform: "translateZ(0)",
-                  backfaceVisibility: "hidden" as const,
-                }}
-              />
-            ) : (
-              <div className="w-20 h-20 bg-[hsl(var(--divider))]/30" />
-            )}
-          </div>
-        </div>
-
-        {/* Text – ~2/3 width */}
-        <div className="w-2/3 flex flex-col justify-start">
-          <div className="text-xs uppercase tracking-[0.16em] text-[hsl(var(--section-light-foreground))]/60 mb-1">
-            {eyebrow}
-          </div>
-          <h3 className="text-base md:text-lg font-medium text-[hsl(var(--section-light-foreground))]">
-            {event.title}
-          </h3>
-          <div className="text-xs text-[hsl(var(--section-light-foreground))]/70 mt-1">
-            {formatted}
-          </div>
-
-          {summary &&
-            (prefersReducedMotion ? (
-              // If user prefers reduced motion, just show the summary statically
-              <p className="mt-2 text-sm text-[hsl(var(--section-light-foreground))]/75 leading-relaxed">
-                {summary}
-              </p>
-            ) : (
-              // Otherwise, animate open on hover of the whole card
-              <div className="mt-2 overflow-hidden max-h-0 opacity-0 transition-all duration-300 ease-out group-hover:max-h-40 group-hover:opacity-100">
-                <p className="text-sm text-[hsl(var(--section-light-foreground))]/75 leading-relaxed">
-                  {summary}
-                </p>
+      {summary ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setExpanded((e) => !e)}
+            className="flex w-full gap-6 items-start text-left cursor-pointer bg-transparent border-none p-0"
+          >
+            {/* Image – ~1/3 width */}
+            <div className="w-1/3 shrink-0">
+              <div className="w-full aspect-[16/9] bg-[hsl(var(--divider))]/15 overflow-hidden flex items-center justify-center">
+                {imageSrc ? (
+                  <img
+                    src={imageSrc}
+                    alt={event.title}
+                    loading="lazy"
+                    className="w-full h-full object-cover"
+                    style={{
+                      transform: "translateZ(0)",
+                      backfaceVisibility: "hidden" as const,
+                    }}
+                  />
+                ) : (
+                  <div className="w-20 h-20 bg-[hsl(var(--divider))]/30" />
+                )}
               </div>
-            ))}
+            </div>
+
+            {/* Text – ~2/3 width */}
+            <div className="w-2/3 min-w-0 flex flex-col justify-start">
+              <div className="text-xs uppercase tracking-[0.16em] text-[hsl(var(--section-light-foreground))]/60 mb-1">
+                {eyebrow}
+              </div>
+              <h3 className="text-base md:text-lg font-medium text-[hsl(var(--section-light-foreground))]">
+                {event.title}
+              </h3>
+              <div className="text-xs text-[hsl(var(--section-light-foreground))]/70 mt-1">
+                {formatted}
+              </div>
+            </div>
+
+            <ChevronDown
+              className="h-4 w-4 shrink-0 text-[hsl(var(--section-light-foreground))]/60 mt-1"
+              style={{
+                transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+                transition: prefersReducedMotion
+                  ? "none"
+                  : "transform 250ms ease-out",
+              }}
+              aria-hidden="true"
+            />
+          </button>
+
+          <div
+            style={{
+              maxHeight: expanded ? "500px" : "0px",
+              opacity: expanded ? 1 : 0,
+              overflow: "hidden",
+              transition: prefersReducedMotion
+                ? "none"
+                : "max-height 300ms ease-out, opacity 250ms ease-out",
+            }}
+          >
+            <p className="mt-2 text-sm text-[hsl(var(--section-light-foreground))]/75 leading-relaxed pl-[calc(33.333%+1.5rem)]">
+              {summary}
+            </p>
+          </div>
+        </>
+      ) : (
+        <div className="flex gap-6 items-start">
+          <div className="w-1/3 shrink-0">
+            <div className="w-full aspect-[16/9] bg-[hsl(var(--divider))]/15 overflow-hidden flex items-center justify-center">
+              {imageSrc ? (
+                <img
+                  src={imageSrc}
+                  alt={event.title}
+                  loading="lazy"
+                  className="w-full h-full object-cover"
+                  style={{
+                    transform: "translateZ(0)",
+                    backfaceVisibility: "hidden" as const,
+                  }}
+                />
+              ) : (
+                <div className="w-20 h-20 bg-[hsl(var(--divider))]/30" />
+              )}
+            </div>
+          </div>
+          <div className="w-2/3 min-w-0 flex flex-col justify-start">
+            <div className="text-xs uppercase tracking-[0.16em] text-[hsl(var(--section-light-foreground))]/60 mb-1">
+              {eyebrow}
+            </div>
+            <h3 className="text-base md:text-lg font-medium text-[hsl(var(--section-light-foreground))]">
+              {event.title}
+            </h3>
+            <div className="text-xs text-[hsl(var(--section-light-foreground))]/70 mt-1">
+              {formatted}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </motion.div>
   );
 };
