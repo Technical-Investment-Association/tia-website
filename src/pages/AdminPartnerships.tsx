@@ -8,20 +8,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import {
+  addDoc,
   collection,
+  deleteDoc,
+  doc,
   onSnapshot,
   orderBy,
   query,
+  serverTimestamp,
   Timestamp,
+  updateDoc,
 } from "firebase/firestore";
-import { Plus } from "lucide-react";
-
-import Navigation from "@/components/Navigation";
-import Footer from "@/components/Footer";
-import { Hero } from "@/components/ui/hero";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { db } from "@/lib/firebase/firebase";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { db, storage } from "@/lib/firebase/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { PartnershipEditModal } from "@/components/modals/partnership-edit-modal";
 
@@ -29,7 +28,7 @@ import { PartnershipEditModal } from "@/components/modals/partnership-edit-modal
 // Types
 // ----------------------------------------------------------------------------
 
-export type PartnershipKind = "corporate" | "student_club";
+export type PartnershipKind = "corporate" | "student_club" | "university_club";
 
 export type PartnershipDoc = {
   id: string;
@@ -44,6 +43,8 @@ export type PartnershipDoc = {
   created_at?: Timestamp | null;
   updated_at?: Timestamp | null;
 };
+
+type Partnership = PartnershipDoc;
 
 // ----------------------------------------------------------------------------
 // Component
@@ -78,6 +79,22 @@ const AdminPartnerships = () => {
   const [selectedPartnership, setSelectedPartnership] =
     useState<PartnershipDoc | null>(null);
 
+  const resetForm = () => {
+    setEditingId(null);
+    setName("");
+    setDescription("");
+    setWebsite("");
+    setEstablishedDate("");
+    setPublished(true);
+    setArchived(false);
+    setLogoFile(null);
+    setKind("corporate");
+  };
+
+  const handleUpdated = () => {
+    setMessage("Partnership saved.");
+  };
+
   useEffect(() => {
     if (!isAdmin) return;
 
@@ -90,7 +107,7 @@ const AdminPartnerships = () => {
       q,
       (snapshot) => {
         const items: PartnershipDoc[] = snapshot.docs.map((d) => {
-          const data = d.data() as any;
+          const data = d.data() as PartnershipDoc;
           return {
             id: d.id,
             name: data.name,
@@ -135,7 +152,7 @@ const AdminPartnerships = () => {
     setEstablishedDate(
       p.established_at?.toDate
         ? p.established_at.toDate().toISOString().slice(0, 10)
-        : ""
+        : "",
     );
     setPublished(p.published);
     setArchived(p.archived);
@@ -171,7 +188,7 @@ const AdminPartnerships = () => {
       if (editingId) {
         // update
         const docRef = doc(db, "partnerships", editingId);
-        const updateData: any = {
+        const baseUpdate = {
           name: name.trim(),
           description: description.trim() || null,
           website: website.trim() || null,
@@ -187,14 +204,15 @@ const AdminPartnerships = () => {
           const fileName = `logo.${ext}`;
           const storageRef = ref(
             storage,
-            `partnerships/${editingId}/${fileName}`
+            `partnerships/${editingId}/${fileName}`,
           );
           const snap = await uploadBytes(storageRef, logoFile);
           const url = await getDownloadURL(snap.ref);
-          updateData.logo_url = url;
+          await updateDoc(docRef, { ...baseUpdate, logo_url: url });
+        } else {
+          await updateDoc(docRef, baseUpdate);
         }
 
-        await updateDoc(docRef, updateData);
         setMessage("Partnership updated.");
       } else {
         // create
@@ -217,7 +235,7 @@ const AdminPartnerships = () => {
           const fileName = `logo.${ext}`;
           const storageRef = ref(
             storage,
-            `partnerships/${docRef.id}/${fileName}`
+            `partnerships/${docRef.id}/${fileName}`,
           );
           const snap = await uploadBytes(storageRef, logoFile);
           const url = await getDownloadURL(snap.ref);
@@ -228,9 +246,11 @@ const AdminPartnerships = () => {
       }
 
       closeForm();
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.message || "Failed to save partnership.");
+      const message =
+        err instanceof Error ? err.message : "Failed to save partnership.";
+      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -239,7 +259,7 @@ const AdminPartnerships = () => {
   const handleArchiveToggleById = async (
     id: string,
     currentArchived: boolean,
-    currentPublished: boolean
+    currentPublished: boolean,
   ) => {
     try {
       const docRef = doc(db, "partnerships", id);
@@ -252,7 +272,7 @@ const AdminPartnerships = () => {
       });
 
       setMessage(
-        newArchived ? "Partnership archived." : "Partnership unarchived."
+        newArchived ? "Partnership archived." : "Partnership unarchived.",
       );
     } catch (err) {
       console.error(err);
@@ -262,7 +282,7 @@ const AdminPartnerships = () => {
 
   const handleDeleteById = async (id: string) => {
     const sure = window.confirm(
-      "Deleting a partnership is permanent. Are you sure? You can also choose to archive it instead."
+      "Deleting a partnership is permanent. Are you sure? You can also choose to archive it instead.",
     );
     if (!sure) return;
 
@@ -279,14 +299,14 @@ const AdminPartnerships = () => {
   // Published/Archived toggle stays as requested
   const visible = useMemo(
     () => partnerships.filter((p) => (showArchived ? p.archived : !p.archived)),
-    [partnerships, showArchived]
+    [partnerships, showArchived],
   );
 
   // Split into sections: corporate + student_club
   // Note: we treat `university_club` as part of the student-club section for display purposes.
   const corporate = useMemo(
     () => visible.filter((p) => (p.kind || "corporate") === "corporate"),
-    [visible]
+    [visible],
   );
 
   const studentClubs = useMemo(
@@ -295,7 +315,7 @@ const AdminPartnerships = () => {
         const k = p.kind || "corporate";
         return k === "student_club" || k === "university_club";
       }),
-    [visible]
+    [visible],
   );
 
   const kindLabel = (k?: PartnershipKind) => {
@@ -374,245 +394,252 @@ const AdminPartnerships = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <section className="pt-32 pb-20 px-4 bg-[hsl(var(--section-light))]">
-        <div className="container mx-auto max-w-5xl">
-          <Separator className="w-16 mb-8 bg-[hsl(var(--divider))]" />
+      <main>
+        <section className="pt-32 pb-20 px-4 bg-[hsl(var(--section-light))]">
+          <div className="container mx-auto max-w-5xl">
+            <Separator className="w-16 mb-8 bg-[hsl(var(--divider))]" />
 
-          <header className="mb-8 flex items-start justify-between gap-6">
-            <div>
-              <h1 className="text-4xl font-bold mb-2 text-[hsl(var(--section-light-foreground))]">
-                Partnerships Admin
-              </h1>
-              <p className="text-[hsl(var(--section-light-foreground))]/70 max-w-xl">
-                Manage partnerships, logos and visibility. Archive to hide
-                without deleting.
-              </p>
+            <header className="mb-8 flex items-start justify-between gap-6">
+              <div>
+                <h1 className="text-4xl font-bold mb-2 text-[hsl(var(--section-light-foreground))]">
+                  Partnerships Admin
+                </h1>
+                <p className="text-[hsl(var(--section-light-foreground))]/70 max-w-xl">
+                  Manage partnerships, logos and visibility. Archive to hide
+                  without deleting.
+                </p>
+              </div>
+
+              <Button onClick={openCreateForm}>Add new partnership</Button>
+            </header>
+
+            {/* Toggle current vs archived (fixed formatting: explicit variants, no inherited text issues) */}
+            <div className="flex items-center gap-3 mb-8">
+              <Button
+                variant={showArchived ? "outline" : "default"}
+                size="sm"
+                onClick={() => setShowArchived(false)}
+              >
+                Published
+              </Button>
+              <Button
+                variant={showArchived ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowArchived(true)}
+              >
+                Archived
+              </Button>
             </div>
 
-            <Button onClick={openCreateForm}>Add new partnership</Button>
-          </header>
+            {message && (
+              <p className="text-sm text-emerald-600 mb-4">{message}</p>
+            )}
+            {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
-          {/* Toggle current vs archived (fixed formatting: explicit variants, no inherited text issues) */}
-          <div className="flex items-center gap-3 mb-8">
-            <Button
-              variant={showArchived ? "outline" : "default"}
-              size="sm"
-              onClick={() => setShowArchived(false)}
-            >
-              Published
-            </Button>
-            <Button
-              variant={showArchived ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowArchived(true)}
-            >
-              Archived
-            </Button>
-          </div>
+            {/* Edit/Create form (archive + delete live here, NOT on the card) */}
+            {showForm && (
+              <Card className="p-6 mb-10 bg-white border-border">
+                <form className="space-y-5" onSubmit={handleSubmit}>
+                  <div className="space-y-2">
+                    <Label htmlFor="kind">Category</Label>
+                    <select
+                      id="kind"
+                      className="w-full border border-input bg-background rounded-md px-3 py-2 text-sm"
+                      value={kind}
+                      onChange={(e) =>
+                        setKind(e.target.value as PartnershipKind)
+                      }
+                    >
+                      <option value="corporate">Corporate</option>
+                      <option value="student_club">Student club</option>
+                      <option value="university_club">University club</option>
+                    </select>
+                    <p className="text-xs text-muted-foreground">
+                      Used for grouping on the admin page and presentation on
+                      the public site.
+                    </p>
+                  </div>
 
-          {message && (
-            <p className="text-sm text-emerald-600 mb-4">{message}</p>
-          )}
-          {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
-
-          {/* Edit/Create form (archive + delete live here, NOT on the card) */}
-          {showForm && (
-            <Card className="p-6 mb-10 bg-white border-border">
-              <form className="space-y-5" onSubmit={handleSubmit}>
-                <div className="space-y-2">
-                  <Label htmlFor="kind">Category</Label>
-                  <select
-                    id="kind"
-                    className="w-full border border-input bg-background rounded-md px-3 py-2 text-sm"
-                    value={kind}
-                    onChange={(e) => setKind(e.target.value as PartnershipKind)}
-                  >
-                    <option value="corporate">Corporate</option>
-                    <option value="student_club">Student club</option>
-                    <option value="university_club">University club</option>
-                  </select>
-                  <p className="text-xs text-muted-foreground">
-                    Used for grouping on the admin page and presentation on the
-                    public site.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="name">Partnership name</Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="website">Website (optional)</Label>
-                  <Input
-                    id="website"
-                    value={website}
-                    onChange={(e) => setWebsite(e.target.value)}
-                    placeholder="https://..."
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="established">Established (date)</Label>
-                  <Input
-                    id="established"
-                    type="date"
-                    value={establishedDate}
-                    onChange={(e) => setEstablishedDate(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Logo</Label>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      setLogoFile(file);
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Optional. PNG/SVG with transparent background works best.
-                  </p>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={published}
-                      onChange={(e) => setPublished(e.target.checked)}
-                      disabled={archived}
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Partnership name</Label>
+                    <Input
+                      id="name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
                     />
-                    <span>Published</span>
-                  </label>
+                  </div>
 
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={archived}
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="website">Website (optional)</Label>
+                    <Input
+                      id="website"
+                      value={website}
+                      onChange={(e) => setWebsite(e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="established">Established (date)</Label>
+                    <Input
+                      id="established"
+                      type="date"
+                      value={establishedDate}
+                      onChange={(e) => setEstablishedDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Logo</Label>
+                    <Input
+                      type="file"
+                      accept="image/*"
                       onChange={(e) => {
-                        const next = e.target.checked;
-                        setArchived(next);
-                        if (next) setPublished(false);
+                        const file = e.target.files?.[0] || null;
+                        setLogoFile(file);
                       }}
                     />
-                    <span>Archived (auto-unpublishes)</span>
-                  </label>
-                </div>
-              )}
+                    <p className="text-xs text-muted-foreground">
+                      Optional. PNG/SVG with transparent background works best.
+                    </p>
+                  </div>
 
-                {/* Footer actions */}
-                <div className="pt-4 border-t flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-                  <div className="flex gap-2">
-                    <Button type="button" variant="outline" onClick={closeForm}>
-                      Cancel
-                    </Button>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={published}
+                        onChange={(e) => setPublished(e.target.checked)}
+                        disabled={archived}
+                      />
+                      <span>Published</span>
+                    </label>
 
-                    {editingId && (
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={archived}
+                        onChange={(e) => {
+                          const next = e.target.checked;
+                          setArchived(next);
+                          if (next) setPublished(false);
+                        }}
+                      />
+                      <span>Archived (auto-unpublishes)</span>
+                    </label>
+                  </div>
+
+                  {/* Footer actions */}
+                  <div className="pt-4 border-t flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+                    <div className="flex gap-2">
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => {
-                          const current = partnerships.find(
-                            (x) => x.id === editingId
-                          );
-                          if (!current) return;
-                          handleArchiveToggleById(
-                            current.id,
-                            current.archived,
-                            current.published
-                          );
-                        }}
+                        onClick={closeForm}
                       >
-                        {archived ? "Unarchive" : "Archive"}
+                        Cancel
                       </Button>
-                    )}
 
-                    {editingId && (
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        onClick={() => handleDeleteById(editingId)}
-                      >
-                        Delete
-                      </Button>
-                    )}
+                      {editingId && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            const current = partnerships.find(
+                              (x) => x.id === editingId,
+                            );
+                            if (!current) return;
+                            handleArchiveToggleById(
+                              current.id,
+                              current.archived,
+                              current.published,
+                            );
+                          }}
+                        >
+                          {archived ? "Unarchive" : "Archive"}
+                        </Button>
+                      )}
+
+                      {editingId && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          onClick={() => handleDeleteById(editingId)}
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+
+                    <Button type="submit" disabled={submitting}>
+                      {submitting
+                        ? editingId
+                          ? "Saving..."
+                          : "Creating..."
+                        : editingId
+                          ? "Save changes"
+                          : "Create"}
+                    </Button>
                   </div>
+                </form>
+              </Card>
+            )}
 
-                  <Button type="submit" disabled={submitting}>
-                    {submitting
-                      ? editingId
-                        ? "Saving..."
-                        : "Creating..."
-                      : editingId
-                      ? "Save changes"
-                      : "Create"}
-                  </Button>
+            {/* Lists split into Corporate + Student Club sections */}
+            {loading ? (
+              <p>Loading partnerships...</p>
+            ) : visible.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No {showArchived ? "archived" : "published"} partnerships yet.
+              </p>
+            ) : (
+              <div className="space-y-10">
+                <div>
+                  <h2 className="text-xl font-medium text-[hsl(var(--section-light-foreground))] mb-4">
+                    Corporate
+                  </h2>
+                  {corporate.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No corporate partnerships here.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                      {corporate.map((p) => (
+                        <AdminPartnershipCard key={p.id} p={p} />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </form>
-            </Card>
-          )}
 
-          {/* Lists split into Corporate + Student Club sections */}
-          {loading ? (
-            <p>Loading partnerships...</p>
-          ) : visible.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No {showArchived ? "archived" : "published"} partnerships yet.
-            </p>
-          ) : (
-            <div className="space-y-10">
-              <div>
-                <h2 className="text-xl font-medium text-[hsl(var(--section-light-foreground))] mb-4">
-                  Corporate
-                </h2>
-                {corporate.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No corporate partnerships here.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 gap-4">
-                    {corporate.map((p) => (
-                      <AdminPartnershipCard key={p.id} p={p} />
-                    ))}
-                  </div>
-                )}
+                <div>
+                  <h2 className="text-xl font-medium text-[hsl(var(--section-light-foreground))] mb-4">
+                    Student clubs
+                  </h2>
+                  {studentClubs.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No student club partnerships here.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                      {studentClubs.map((p) => (
+                        <AdminPartnershipCard key={p.id} p={p} />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-
-              <div>
-                <h2 className="text-xl font-medium text-[hsl(var(--section-light-foreground))] mb-4">
-                  Student clubs
-                </h2>
-                {studentClubs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No student club partnerships here.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 gap-4">
-                    {studentClubs.map((p) => (
-                      <AdminPartnershipCard key={p.id} p={p} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            )}
           </div>
         </section>
       </main>
@@ -630,85 +657,3 @@ const AdminPartnerships = () => {
 };
 
 export default AdminPartnerships;
-
-// ----------------------------------------------------------------------------
-// Row component (mirrors “AdminEventCard” vibe but simpler)
-// ----------------------------------------------------------------------------
-
-function kindLabel(kind?: PartnershipKind) {
-  if (kind === "student_club") return "Student club";
-  return "Corporate";
-}
-
-function statusLabel(p: PartnershipDoc) {
-  if (p.archived) return "Archived";
-  if (p.published) return "Published";
-  return "Unpublished";
-}
-
-function AdminPartnershipRow({
-  partnership,
-  onEdit,
-}: {
-  partnership: PartnershipDoc;
-  onEdit: () => void;
-}) {
-  return (
-    <div className="py-6 border-b border-[hsl(var(--divider))]/40 flex flex-col md:flex-row md:items-center gap-5">
-      {/* Logo */}
-      <div className="w-full md:w-44 flex-shrink-0">
-        {partnership.logo_url ? (
-          <div className="h-20 border border-[hsl(var(--divider))] bg-white flex items-center justify-center p-3">
-            <img
-              src={partnership.logo_url}
-              alt={partnership.name}
-              className="max-h-14 w-full object-contain"
-            />
-          </div>
-        ) : (
-          <div className="h-20 border border-dashed border-[hsl(var(--divider))] bg-white flex items-center justify-center text-xs text-[hsl(var(--section-light-foreground))]/60">
-            No logo
-          </div>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h3 className="text-lg font-semibold text-[hsl(var(--section-light-foreground))]">
-            {partnership.name}
-          </h3>
-          <span className="text-xs px-2 py-1 border border-[hsl(var(--divider))] text-[hsl(var(--section-light-foreground))]/70">
-            {kindLabel(partnership.kind)}
-          </span>
-          <span className="text-xs px-2 py-1 border border-[hsl(var(--divider))] text-[hsl(var(--section-light-foreground))]/70">
-            {statusLabel(partnership)}
-          </span>
-        </div>
-
-        {partnership.description ? (
-          <p className="mt-2 text-sm text-[hsl(var(--section-light-foreground))]/70 line-clamp-2">
-            {partnership.description}
-          </p>
-        ) : (
-          <p className="mt-2 text-sm text-[hsl(var(--section-light-foreground))]/50">
-            No description.
-          </p>
-        )}
-
-        {partnership.website ? (
-          <p className="mt-2 text-xs text-[hsl(var(--section-light-foreground))]/60 break-all">
-            {partnership.website}
-          </p>
-        ) : null}
-      </div>
-
-      {/* Actions */}
-      <div className="flex gap-3 md:justify-end">
-        <Button variant="outline" onClick={onEdit}>
-          Edit
-        </Button>
-      </div>
-    </div>
-  );
-}
