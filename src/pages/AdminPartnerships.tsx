@@ -152,7 +152,7 @@ const AdminPartnerships = () => {
     setEstablishedDate(
       p.established_at?.toDate
         ? p.established_at.toDate().toISOString().slice(0, 10)
-        : ""
+        : "",
     );
     setPublished(p.published);
     setArchived(p.archived);
@@ -235,7 +235,7 @@ const AdminPartnerships = () => {
           const fileName = `logo.${ext}`;
           const storageRef = ref(
             storage,
-            `partnerships/${docRef.id}/${fileName}`
+            `partnerships/${docRef.id}/${fileName}`,
           );
           const snap = await uploadBytes(storageRef, logoFile);
           const url = await getDownloadURL(snap.ref);
@@ -259,7 +259,7 @@ const AdminPartnerships = () => {
   const handleArchiveToggleById = async (
     id: string,
     currentArchived: boolean,
-    currentPublished: boolean
+    currentPublished: boolean,
   ) => {
     try {
       const docRef = doc(db, "partnerships", id);
@@ -272,7 +272,7 @@ const AdminPartnerships = () => {
       });
 
       setMessage(
-        newArchived ? "Partnership archived." : "Partnership unarchived."
+        newArchived ? "Partnership archived." : "Partnership unarchived.",
       );
     } catch (err) {
       console.error(err);
@@ -282,7 +282,7 @@ const AdminPartnerships = () => {
 
   const handleDeleteById = async (id: string) => {
     const sure = window.confirm(
-      "Deleting a partnership is permanent. Are you sure? You can also choose to archive it instead."
+      "Deleting a partnership is permanent. Are you sure? You can also choose to archive it instead.",
     );
     if (!sure) return;
 
@@ -299,14 +299,14 @@ const AdminPartnerships = () => {
   // Published/Archived toggle stays as requested
   const visible = useMemo(
     () => partnerships.filter((p) => (showArchived ? p.archived : !p.archived)),
-    [partnerships, showArchived]
+    [partnerships, showArchived],
   );
 
   // Split into sections: corporate + student_club
   // Note: we treat `university_club` as part of the student-club section for display purposes.
   const corporate = useMemo(
     () => visible.filter((p) => (p.kind || "corporate") === "corporate"),
-    [visible]
+    [visible],
   );
 
   const studentClubs = useMemo(
@@ -315,7 +315,7 @@ const AdminPartnerships = () => {
         const k = p.kind || "corporate";
         return k === "student_club" || k === "university_club";
       }),
-    [visible]
+    [visible],
   );
 
   const kindLabel = (k?: PartnershipKind) => {
@@ -588,8 +588,8 @@ const AdminPartnerships = () => {
                           ? "Saving..."
                           : "Creating..."
                         : editingId
-                        ? "Save changes"
-                        : "Create"}
+                          ? "Save changes"
+                          : "Create"}
                     </Button>
                   </div>
                 </form>
