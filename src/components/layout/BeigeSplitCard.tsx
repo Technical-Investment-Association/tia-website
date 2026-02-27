@@ -114,8 +114,8 @@ export const BeigeSplitCard = ({
         <FinisherBackground
           className="finisher-header-card absolute inset-0 h-full w-full"
           backgroundColor={themeColors.sectionCream}
-          particleColors={animationColors}
-          count={6}
+          particleColors={animationColors.slice(0, 2)}
+          count={2}
           particleSize={{ min: 260, max: 520, pulse: 0 }}
           speed={{
             x: { min: 0.1, max: 0.3 },

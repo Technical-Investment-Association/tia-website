@@ -298,8 +298,6 @@ const Events = () => {
                 <div className="space-y-16">
                   {/* Upcoming Events */}
                   <div>
-                    <Separator className="w-16 mb-6 bg-[hsl(var(--divider))]" />
-
                     <h2 className="text-4xl md:text-3xl text-font-bold text-[hsl(var(--section-light-foreground))] mb-8">
                       Upcoming events
                     </h2>

@@ -92,7 +92,7 @@ export function Hero({
       try {
         instanceRef.current = new window.FinisherHeader({
           className: "finisher-header",
-          count: 8,
+          count: 4,
           size: {
             min: 1300,
             max: 1500,
