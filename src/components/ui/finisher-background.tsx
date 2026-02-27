@@ -7,13 +7,14 @@
  * Usage:
  * <FinisherBackground
  *   className="finisher-header-whatwedo"
- *   backgroundColor="#ffffff"
- *   particleColors={["#328488", "#ffffff", "#b6a892"]}
+ *   backgroundColor={themeColors.white}
+ *   particleColors={[...defaultParticleColors]}
  *   count={6}
  * />
  */
 
 import { useEffect, useRef } from "react";
+import { themeColors, defaultParticleColors } from "@/theme/tokens";
 
 declare global {
   interface Window {
@@ -40,8 +41,8 @@ interface FinisherBackgroundProps {
 
 export const FinisherBackground = ({
   className = "finisher-header-background",
-  backgroundColor = "#ffffff",
-  particleColors = ["#328488", "#ffffff", "#b6a892"],
+  backgroundColor = themeColors.white,
+  particleColors = [...defaultParticleColors],
   count = 6,
   particleSize = { min: 300, max: 600, pulse: 0 },
   speed = {

@@ -339,7 +339,7 @@ const Events = () => {
                   </div>
 
                   {/* Recent Past Events */}
-                  <div className="bg-[#f3f2ec]">
+                  <div className="bg-section-cream">
                     <div className="grid-inner py-14 md:py-16">
                       {/* Left half – heading */}
                       <div className="col-span-12 md:col-span-6 mb-10 md:mb-0">

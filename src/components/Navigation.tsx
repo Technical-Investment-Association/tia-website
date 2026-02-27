@@ -1,10 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase/firebase";
+import {
+  navLinks,
+  adminNavItems,
+  NAVBAR_HEIGHT_PX,
+  type NavItem,
+} from "@/components/navigation/nav-config";
 
 /**
  * ============================================================================
@@ -103,25 +109,6 @@ import { auth } from "@/lib/firebase/firebase";
 
 type DrawerMode = "main" | "admin";
 
-type NavItem = {
-  name: string;
-  path: string;
-  /**
-   * Optional nested subpages.
-   * If you later add subpages (e.g. Partnerships -> Corporate / Student clubs),
-   * we intentionally show them inside the drawer (NOT as a dropdown in the navbar),
-   * because dropdowns get messy on both mobile and desktop.
-   *
-   * When children exist:
-   * - the drawer shows the parent page name as the drawer title
-   * - the list shows the subpages
-   * - the navbar stays clean (no dropdowns)
-   */
-  children?: NavItem[];
-};
-
-const NAVBAR_HEIGHT_PX = 96; // h-24
-
 const Navigation = () => {
   const location = useLocation();
   const { role, loading } = useAuth();
@@ -161,24 +148,6 @@ const Navigation = () => {
    * without signing out. Re-introduce previewAsPublic + setPreviewAsPublic from AuthContext
    * and add the toggle back in the admin drawer.
    */
-
-  const navLinks: NavItem[] = useMemo(
-    () => [
-      { name: "Events", path: "/events" },
-      { name: "About", path: "/about" },
-      {
-        name: "Partnerships",
-        path: "/partnerships",
-        // Example (future):
-        // children: [
-        //   { name: "How TIA partners", path: "/partnerships/how-tia-partners" },
-        //   { name: "Corporate partnerships", path: "/partnerships/corporate" },
-        //   { name: "Student club partnerships", path: "/partnerships/student-clubs" },
-        // ],
-      },
-    ],
-    [],
-  );
 
   // Join button visibility:
   // - Desktop: keep your original behavior (only when not at top of home)
@@ -369,7 +338,7 @@ const Navigation = () => {
 
   const drawerTitleClass =
     drawerMode === "admin" && !drawerSectionTitle
-      ? "text-[#D2691E]"
+      ? "text-nav-active"
       : "text-black";
 
   // Shared drawer alignment targets:
@@ -443,8 +412,8 @@ const Navigation = () => {
                     className={`text-sm font-medium tracking-wide uppercase transition-colors
                       ${
                         effectiveScrolled
-                          ? "text-[#D2691E] hover:text-[#b65916]"
-                          : "text-[#FFD2A3] hover:text-[#FFE0BF]"
+                          ? "text-nav-active hover:text-nav-active-hover"
+                          : "text-nav-link hover:text-nav-link-hover"
                       }`}
                     aria-label="Open admin menu"
                   >
@@ -642,7 +611,7 @@ const Navigation = () => {
                           <button
                             type="button"
                             onClick={openAdminDrawer}
-                            className="text-sm font-medium tracking-wide uppercase text-[#D2691E] hover:text-[#b65916]"
+                            className="text-sm font-medium tracking-wide uppercase text-nav-active hover:text-nav-active-hover"
                           >
                             Admin
                           </button>
@@ -656,38 +625,19 @@ const Navigation = () => {
               {/* ADMIN drawer */}
               {drawerMode === "admin" && (
                 <div className="pt-0">
-                  {/* All same font/weight (no fat dashboard) */}
-                  <Link to="/admin" onClick={closeDrawer}>
-                    <DrawerRow>
-                      <span className="text-base font-medium text-slate-800 hover:text-slate-950">
-                        Dashboard
-                      </span>
-                    </DrawerRow>
-                  </Link>
-
-                  <Link to="/admin/members" onClick={closeDrawer}>
-                    <DrawerRow>
-                      <span className="text-base font-medium text-slate-800 hover:text-slate-950">
-                        Admin members
-                      </span>
-                    </DrawerRow>
-                  </Link>
-
-                  <Link to="/admin/events" onClick={closeDrawer}>
-                    <DrawerRow>
-                      <span className="text-base font-medium text-slate-800 hover:text-slate-950">
-                        Admin events
-                      </span>
-                    </DrawerRow>
-                  </Link>
-
-                  <Link to="/admin/partnerships" onClick={closeDrawer}>
-                    <DrawerRow>
-                      <span className="text-base font-medium text-slate-800 hover:text-slate-950">
-                        Admin partnerships
-                      </span>
-                    </DrawerRow>
-                  </Link>
+                  {adminNavItems.map((item) => (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={closeDrawer}
+                    >
+                      <DrawerRow>
+                        <span className="text-base font-medium text-slate-800 hover:text-slate-950">
+                          {item.name}
+                        </span>
+                      </DrawerRow>
+                    </Link>
+                  ))}
 
                   <div className="pt-8">
                     <Button
