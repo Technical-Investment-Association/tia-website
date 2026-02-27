@@ -81,28 +81,18 @@ export function Hero({
 }: HeroProps) {
   const containerRef = useRef<HTMLElement>(null);
   const [initialized, setInitialized] = useState(false);
+  const instanceRef = useRef<{ destroy?: () => void } | null>(null);
+  const inViewRef = useRef(true);
 
   useEffect(() => {
-    // Don't initialize twice
-    if (initialized) return;
+    if (!containerRef.current) return;
 
-    const initFinisher = () => {
-      if (!window.FinisherHeader) {
-        console.warn(
-          "[Hero] FinisherHeader not found on window. Make sure finisher-header.es5.min.js is loaded in index.html"
-        );
-        return false;
-      }
-
-      if (!containerRef.current) {
-        console.warn("[Hero] Container ref not ready");
-        return false;
-      }
-
+    const runInit = () => {
+      if (!window.FinisherHeader || !containerRef.current) return false;
       try {
-        new window.FinisherHeader({
+        instanceRef.current = new window.FinisherHeader({
           className: "finisher-header",
-          count: 13,
+          count: 8,
           size: {
             min: 1300,
             max: 1500,
@@ -124,7 +114,6 @@ export function Hero({
           skew: 0,
           shapes: ["c"],
         });
-
         setInitialized(true);
         return true;
       } catch (error) {
@@ -133,26 +122,64 @@ export function Hero({
       }
     };
 
-    // Try immediately
-    if (initFinisher()) return;
+    const destroy = () => {
+      instanceRef.current?.destroy?.();
+      instanceRef.current = null;
+      setInitialized(false);
+    };
 
-    // Poll if not ready
-    const interval = setInterval(() => {
-      if (initFinisher()) {
-        clearInterval(interval);
+    const maybeInit = () => {
+      if (inViewRef.current && !document.hidden) runInit();
+    };
+
+    const el = containerRef.current;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        inViewRef.current = entry.isIntersecting;
+        if (entry.isIntersecting) {
+          maybeInit();
+        } else {
+          destroy();
+        }
+      },
+      { rootMargin: "100px", threshold: 0 }
+    );
+    io.observe(el);
+
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        destroy();
+      } else if (inViewRef.current) {
+        runInit();
       }
-    }, 100);
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
-    // Give up after 5 seconds
-    const timeout = setTimeout(() => {
-      clearInterval(interval);
-    }, 5000);
+    if (!document.hidden) {
+      if (!runInit()) {
+        const poll = setInterval(() => {
+          if (runInit()) clearInterval(poll);
+        }, 100);
+        const stop = setTimeout(() => clearInterval(poll), 5000);
+        return () => {
+          clearInterval(poll);
+          clearTimeout(stop);
+          io.disconnect();
+          document.removeEventListener("visibilitychange", onVisibilityChange);
+          destroy();
+        };
+      }
+    }
 
     return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
+      io.disconnect();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      destroy();
     };
-  }, [initialized]);
+  }, []);
 
   const resolvedHeight =
     typeof height === "number" ? `${height}px` : height ?? "300px";

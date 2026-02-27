@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useState, useCallback, useMemo, lazy, Suspense } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ArrowRight } from "lucide-react";
 
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -321,39 +321,24 @@ const Partnerships = () => {
               </>
             }
             cta={
-              <Button
-                asChild
-                size="lg"
-                className="
-    group
-    rounded-full px-7 py-2 text-sm md:text-base font-medium
-    bg-white text-black border-none
-    transition-colors duration-200
-    hover:bg-primary hover:text-white
-  "
+              <a
+                href="mailto:partnerships@tiaassociation.com"
+                className="group inline-flex items-center text-sm md:text-base font-medium
+                   text-[hsl(var(--section-light-foreground))]/80
+                   hover:text-[hsl(var(--section-light-foreground))]"
               >
-                <a
-                  href="mailto:partnerships@tiaassociation.com"
-                  className="inline-flex items-center gap-2"
-                >
-                  Start a conversation
-                  <span
-                    className="
-        inline-block transition-transform duration-200 
-        group-hover:translate-x-1
-      "
-                  >
-                    →
-                  </span>
-                </a>
-              </Button>
+                <span>Start a conversation</span>
+                <ArrowRight
+                  className="ml-1 h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
+                  aria-hidden="true"
+                />
+              </a>
             }
             animationColors={[
               themeColors.accentTeal,
               themeColors.accentTaupe,
               themeColors.accentOlive,
             ]}
-            className="lg:h-section 3xl:h-section-lg"
           />
         </Section>
 

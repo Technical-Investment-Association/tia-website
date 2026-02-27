@@ -219,7 +219,6 @@ const Index = () => {
               themeColors.accentMint,
               themeColors.accentTaupe,
             ]}
-            className="xl:h-[540px] 3xl:h-[620px]"
           />
         </Section>
 
