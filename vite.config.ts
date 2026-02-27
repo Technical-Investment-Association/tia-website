@@ -15,4 +15,16 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "react-vendor": ["react", "react-dom", "react-router-dom"],
+          firebase: ["firebase/app", "firebase/auth", "firebase/firestore", "firebase/storage"],
+          "ui-vendor": ["framer-motion", "lucide-react"],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 600,
+  },
 }));

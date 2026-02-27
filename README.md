@@ -1,169 +1,85 @@
-# Technical Investment Association Website
+# Technical Investment Association — Website
 
-This project aims to provide:
-- A clean and professional public-facing website  
-- A secure admin portal for managing content (events, news, research, members)  
-- A maintainable CMS-like system for static text (EditableTextBlock)  
-- A future-proof platform for TIA to build on
+Public-facing website and admin portal for the Technical Investment Association (TIA).
 
----
+## What this project provides
 
-## Tech Stack
+- **Public site**: Home, Events, About, Partnerships, Research, Join, Handbook
+- **Admin portal**: Manage events, members, partnerships, resources (research, education, insights), and content
+- **Design system**: Single source of truth for colours and tokens in `src/index.css` and `src/theme/tokens.ts`
+- **Tech stack**: React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, Firebase (Auth, Firestore, Storage)
 
-**Frontend**
-- React 18 + TypeScript  
-- Vite  
-- Tailwind CSS design system  
-- shadcn/ui component library  
-- Framer Motion  
-- React Router v6  
+## Quick start
 
-**Backend / Infrastructure**
-- Firebase Authentication  
-- Firebase Firestore  
-- Firebase Storage  
-
----
-
-## Authentication & Roles
-
-- Admins sign in with Firebase email/password  
-- Each admin must have a Firestore document under:  
-  `users/{uid} → role: "admin"`  
-- Admin-only pages are protected via:
-  - React (`RequireAdmin`)
-  - Firebase Security Rules
-
----
-
-## Project Structure
-
+```bash
+pnpm install
+# Create .env.local with your Firebase config (see docs/SETUP.md)
+pnpm run dev
 ```
 
-public/
+Open http://localhost:8080. Full setup steps and env vars are in **[docs/SETUP.md](docs/SETUP.md)**.
+
+## Documentation
+
+| Doc | Purpose |
+|-----|---------|
+| [**docs/SETUP.md**](docs/SETUP.md) | Environment, Firebase, commands, deployment |
+| [**docs/ARCHITECTURE.md**](docs/ARCHITECTURE.md) | Structure, routing, auth, design tokens, performance |
+| [**docs/HANDOVER.md**](docs/HANDOVER.md) | Onboarding, where things live, handover checklist |
+
+Start with **docs/SETUP.md** to get running; use **docs/HANDOVER.md** when handing over to someone new.
+
+## Authentication and roles
+
+- Admins sign in with Firebase (email/password).
+- Admin status: Firestore document `users/{uid}` with `role: "admin"`.
+- Admin routes are protected by `RequireAdmin`; security is enforced by Firebase Security Rules.
+
+## Project structure (high level)
+
+```
 src/
-components/
-    ui/
-    contexts/
-    hooks/
-    lib/
-        firebase/
-        pages/
-    index.css
-    App.tsx
-
+├── App.tsx           # Routes and global providers
+├── index.css         # Design tokens and global styles
+├── components/      # Shared components (navigation, modals, ui)
+├── contexts/        # Auth and RequireAdmin
+├── hooks/            # e.g. useUpcomingEvents, useToast
+├── lib/              # Utils and Firebase init
+├── pages/            # One component per route
+├── services/         # Data layer (e.g. resources)
+├── theme/            # Design tokens for JS (e.g. FinisherHeader)
+└── types/            # Shared TypeScript types
 ```
 
----
+Details and conventions are in **docs/ARCHITECTURE.md**.
 
-## Environment Variables
+## Scripts
 
-Create `.env.local`:
-
-```
-
-VITE_FIREBASE_API_KEY=...
-VITE_FIREBASE_AUTH_DOMAIN=...
-VITE_FIREBASE_PROJECT_ID=...
-VITE_FIREBASE_STORAGE_BUCKET=...
-VITE_FIREBASE_MESSAGING_SENDER_ID=...
-VITE_FIREBASE_APP_ID=...
-
-```
-
-These must also be added in **Vercel → Project → Environment Variables**.
-
----
-
-## Development
-
-### Install dependencies
-```
-
-npm install
-
-```
-
-### Run Dev Server
-```
-
-npm run dev
-
-```
-
-### Build for Production
-```
-
-npm run build
-
-```
-
----
-
-## Firebase Setup Checklist
-
-To run the site fully you need:
-
-✔ A Firebase project  
-✔ Auth enabled (Email/Password)  
-✔ Firestore database (rules included in handbook)  
-✔ Storage bucket  
-✔ At least one admin user  
-✔ Admin’s Firestore role set:  
-`users/{uid}.role = "admin"`  
-
----
-
-## Website Handbook
-
-A full handbook is included on the website at `/handbook`. 
-
----
-
-## CMS Static Content
-
-Static text on pages is editable using:
-
-`<EditableTextBlock contentId="page.section.key" />`
-
-Admins can toggle “Preview Mode” to view the site as visitors.
-
----
-
-## Contributing
-
-1. Create a new branch from `main`  
-2. Commit small, clear changes  
-3. Create a pull request  
-4. Another team member approves  
-5. Merge into `main`  
-
-Never push directly to `main`.
-
----
+| Command | Description |
+|---------|-------------|
+| `pnpm run dev` | Start dev server (port 8080) |
+| `pnpm run build` | Production build |
+| `pnpm run preview` | Preview production build locally |
+| `pnpm run lint` | Run ESLint |
 
 ## Deployment
 
-**Vercel** is used for hosting the frontend.  
-Firebase is used only as the backend.
+The frontend is typically deployed on **Vercel**. Push to `main` to trigger a build. Set the same Firebase env vars in the Vercel project. Backend is Firebase only (no separate server).
 
-To deploy:
+## Contributing
 
-- Push to `main`  
-- Vercel builds and deploys automatically  
-- Ensure environment variables match your `.env.local`  
+1. Create a branch from `main`.
+2. Make small, clear changes.
+3. Open a pull request.
+4. Get a review, then merge.
 
----
+Avoid pushing directly to `main`.
 
 ## Contact
 
-For any questions or onboarding of new developers, see the **handbook** or contact the website team.
-
-```
-
-This project is maintained by the Technical Investment Association (TIA).
-Curent contact 25/26: Nora Johannessen | johannessen.nora@gmail.com | +47 90807591
-
-```
+This project is maintained by the Technical Investment Association (TIA).  
+For questions or onboarding, see **docs/HANDOVER.md** or contact the website team.
 
 ---
+
+*Current contact (2025/26): Nora Johannessen — johannessen.nora@gmail.com | +47 90807591*
