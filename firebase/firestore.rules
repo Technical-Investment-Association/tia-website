@@ -1,0 +1,208 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ----------------------------------------------------------------------
+    // Helpers
+    // ----------------------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && userDoc().data.role == "admin";
+    }
+
+    // ----------------------------------------------------------------------
+    // Validators (kept close to your original setup)
+    // ----------------------------------------------------------------------
+
+    function isValidStaticContent(data) {
+      return data.keys().hasAll(["text"]) &&
+             data.text is string &&
+             (!("updated_at" in data) || data.updated_at is timestamp || data.updated_at == null) &&
+             (!("updated_by" in data) || data.updated_by is string || data.updated_by == null);
+    }
+
+    function isValidRegistrationBlock(reg) {
+      return reg is map &&
+        reg.keys().hasAll(["type"]) &&
+        reg.type in ["none", "external", "email", "single", "team"] &&
+        (
+          reg.type != "external" ||
+          (("external_url" in reg) && (reg.external_url is string) && reg.external_url.size() > 0)
+        ) &&
+        (!("status" in reg) || reg.status in ["open", "closed", "full"]);
+    }
+
+    function isValidEvent(data) {
+      return data.keys().hasAll(["title", "starts_at", "published"]) &&
+             data.title is string &&
+             data.published is bool &&
+             data.starts_at is timestamp &&
+             (!("ends_at" in data) || data.ends_at is timestamp || data.ends_at == null) &&
+             (!("location" in data) || data.location is string || data.location == null) &&
+             (!("description" in data) || data.description is string || data.description == null) &&
+             (!("short_description" in data) || data.short_description is string || data.short_description == null) &&
+             (!("company" in data) || data.company is string || data.company == null) &&
+             (!("image_url" in data) || data.image_url is string || data.image_url == null) &&
+             (!("post_image_url" in data) || data.post_image_url is string || data.post_image_url == null) &&
+             (!("summary" in data) || data.summary is string || data.summary == null) &&
+             (!("archived" in data) || data.archived is bool || data.archived == null) &&
+             (!("apply_url" in data) || data.apply_url is string || data.apply_url == null) &&
+             (!("reg_status" in data) || data.reg_status in ["required","open","closed"]) &&
+             (!("reg_start_at" in data) || data.reg_start_at is timestamp || data.reg_start_at == null) &&
+             (!("reg_end_at" in data) || data.reg_end_at is timestamp || data.reg_end_at == null) &&
+             (!("registration" in data) || isValidRegistrationBlock(data.registration));
+    }
+
+    function isValidJob(data) {
+      return data.keys().hasAll(["title"]) &&
+             data.title is string &&
+             (!("company" in data) || data.company is string || data.company == null) &&
+             (!("description" in data) || data.description is string || data.description == null) &&
+             (!("apply_url" in data) || data.apply_url is string || data.apply_url == null) &&
+             (!("published" in data) || data.published is bool || data.published == null);
+    }
+
+    function isValidNews(data) {
+      return data.keys().hasAll(["header", "text", "date"]) &&
+             data.header is string &&
+             data.text is string &&
+             data.date is string &&
+             (!("summary" in data) || data.summary is string || data.summary == null) &&
+             (!("imageUrl" in data) || data.imageUrl is string || data.imageUrl == null);
+    }
+
+    function isValidMember(data) {
+      return data.keys().hasAll(["name", "title", "publish"]) &&
+             data.name is string &&
+             data.title is string &&
+             data.publish is bool &&
+             (!("email" in data)    || data.email is string    || data.email == null) &&
+             (!("linkedin" in data) || data.linkedin is string || data.linkedin == null) &&
+             (!("imageUrl" in data) || data.imageUrl is string || data.imageUrl == null);
+    }
+
+    function isValidPartnership(data) {
+      return data.keys().hasAll(["name", "published", "archived"]) &&
+             data.name is string &&
+             data.published is bool &&
+             data.archived is bool &&
+             (!("description" in data) || data.description is string || data.description == null) &&
+             (!("website" in data) || data.website is string || data.website == null) &&
+             (!("logo_url" in data) || data.logo_url is string || data.logo_url == null) &&
+             (!("kind" in data) || data.kind in ["corporate", "student_club"]) &&
+             (!("established_at" in data) || data.established_at is timestamp || data.established_at == null);
+    }
+
+    function isValidEventRegistration(data) {
+      return data.keys().hasAll(["event_id", "user_email", "gdpr_consent"]) &&
+             data.event_id is string &&
+             data.user_email is string &&
+             data.user_email == request.auth.token.email &&
+             data.gdpr_consent is map &&
+             data.gdpr_consent.data_processing == true &&
+             data.gdpr_consent.accepted_at is timestamp;
+    }
+
+    // ----------------------------------------------------------------------
+    // Collections
+    // ----------------------------------------------------------------------
+
+    match /static_content/{id} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin() && isValidStaticContent(request.resource.data);
+    }
+
+    match /pages/{slug} {
+      allow get, list: if true;
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /events/{id} {
+      allow get, list: if resource.data.published == true || isAdmin();
+      allow create, update: if isAdmin() && isValidEvent(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /jobs/{id} {
+      allow get, list: if true;
+      allow create, update: if isAdmin() && isValidJob(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /news/{id} {
+      allow get, list: if true;
+      allow create, update: if isAdmin() && isValidNews(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /members/{id} {
+      allow get, list: if resource.data.publish == true || isAdmin();
+      allow create, update: if isAdmin() && isValidMember(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /partnerships/{id} {
+      allow get, list: if (resource.data.published == true && resource.data.archived == false) || isAdmin();
+      allow create, update: if isAdmin() && isValidPartnership(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /users/{uid} {
+      allow get: if isSignedIn() && request.auth.uid == uid;
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /member_signups/{id} {
+      allow create: if true;
+      allow get, list: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    match /newsletter_signups/{id} {
+      allow create: if true;
+      allow get, list: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    match /event_registrations/{registrationId} {
+      allow create: if isSignedIn() && isValidEventRegistration(request.resource.data);
+      allow get: if isSignedIn() && request.auth.token.email == resource.data.user_email;
+      allow list: if isAdmin();
+      allow update, delete: if isAdmin() || (
+        isSignedIn() &&
+        request.auth.token.email == resource.data.user_email &&
+        request.resource.data.status == "cancelled"
+      );
+    }
+
+    // Resources (research, education, insights)
+    match /resources/{id} {
+      // Single-document read: only published & not archived, or admin
+      allow get: if (resource.data.published == true && resource.data.archived == false) || isAdmin();
+
+      // List queries: resource is not available in rules, so we allow listing
+      // and rely on the app to filter to published/non-archived where needed.
+      // (Admin pages and public pages both list from /resources.)
+      allow list: if true;
+
+      // Admin writes; validation is handled in the app / services layer
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
