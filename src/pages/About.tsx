@@ -13,7 +13,7 @@ import { lazy, Suspense } from "react";
 const FinisherBackground = lazy(() =>
   import("@/components/ui/finisher-background").then((module) => ({
     default: module.FinisherBackground,
-  }))
+  })),
 );
 
 const About = () => {
@@ -35,7 +35,7 @@ const About = () => {
       <Hero
         title="About TIA"
         description="A student-run community at the intersection of finance and technology."
-        height={600}
+        height={450}
       />
 
       <main className="grid-outer bg-white">

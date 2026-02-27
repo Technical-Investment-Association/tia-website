@@ -1,0 +1,65 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // NOTE: this reads from Firestore to check the user's role.
+    // Make sure Firestore rules allow admins to read /users/{uid}.
+    function userDoc() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return isSignedIn() && userDoc().data.role == "admin";
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isPdf() {
+      return request.resource.contentType == "application/pdf"
+        || request.resource.contentType.matches('application/.*pdf.*');
+    }
+
+    function underBytes(maxBytes) {
+      return request.resource.size < maxBytes;
+    }
+
+    // Partnerships logos
+    match /partnerships/{partnershipId}/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && underBytes(5 * 1024 * 1024);
+    }
+
+    // Event main images (your code uploads: event-images/{Date.now()}_{name})
+    match /event-images/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && underBytes(5 * 1024 * 1024);
+    }
+
+    // Event post images (your code uploads: event-post-images/{Date.now()}_{name})
+    match /event-post-images/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && underBytes(5 * 1024 * 1024);
+    }
+
+    // Resource PDFs (education, research, insights)
+    // Stored as: resources/{folder}/{id}.pdf where folder is "education", "research" or "insights"
+    match /resources/{folder}/{fileName} {
+      // Public can read published PDFs; locking this further can be done via Firestore rules + signed URLs
+      allow read: if true;
+      allow write: if isAdmin() && isPdf() && underBytes(50 * 1024 * 1024);
+    }
+
+    // Deny everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

@@ -267,7 +267,7 @@ const Events = () => {
       <Hero
         title="Events"
         description="Workshops, speaker sessions and market cases that connect finance, technology and quantitative thinking."
-        height={600}
+        height={450}
       />
 
       {/* Events Content */}

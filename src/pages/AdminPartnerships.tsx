@@ -9,36 +9,50 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import {
   collection,
-  addDoc,
   onSnapshot,
-  query,
   orderBy,
-  updateDoc,
-  deleteDoc,
-  doc,
-  serverTimestamp,
+  query,
+  Timestamp,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "@/lib/firebase/firebase";
+import { Plus } from "lucide-react";
 
-type PartnershipKind = "corporate" | "student_club" | "university_club";
+import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
+import { Hero } from "@/components/ui/hero";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { db } from "@/lib/firebase/firebase";
+import { useAuth } from "@/contexts/AuthContext";
+import { PartnershipEditModal } from "@/components/modals/partnership-edit-modal";
 
-type Partnership = {
+// ----------------------------------------------------------------------------
+// Types
+// ----------------------------------------------------------------------------
+
+export type PartnershipKind = "corporate" | "student_club";
+
+export type PartnershipDoc = {
   id: string;
   name: string;
   description?: string | null;
   website?: string | null;
-  established_at?: any;
+  established_at?: Timestamp | null;
   logo_url?: string | null;
   published: boolean;
   archived: boolean;
-  created_at?: any;
-  updated_at?: any;
   kind?: PartnershipKind;
+  created_at?: Timestamp | null;
+  updated_at?: Timestamp | null;
 };
 
+// ----------------------------------------------------------------------------
+// Component
+// ----------------------------------------------------------------------------
+
 const AdminPartnerships = () => {
-  const [partnerships, setPartnerships] = useState<Partnership[]>([]);
+  const { isAdmin } = useAuth();
+
+  const [partnerships, setPartnerships] = useState<PartnershipDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
 
@@ -59,42 +73,52 @@ const AdminPartnerships = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // load partnerships
+  // Modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedPartnership, setSelectedPartnership] =
+    useState<PartnershipDoc | null>(null);
+
   useEffect(() => {
+    if (!isAdmin) return;
+
     const q = query(
       collection(db, "partnerships"),
-      orderBy("created_at", "desc")
+      orderBy("created_at", "desc"),
     );
+
     const unsub = onSnapshot(
       q,
       (snapshot) => {
-        const items: Partnership[] = snapshot.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as any),
-        }));
+        const items: PartnershipDoc[] = snapshot.docs.map((d) => {
+          const data = d.data() as any;
+          return {
+            id: d.id,
+            name: data.name,
+            description: data.description ?? null,
+            website: data.website ?? null,
+            established_at: data.established_at ?? null,
+            logo_url: data.logo_url ?? null,
+            published: data.published ?? false,
+            archived: data.archived ?? false,
+            kind: data.kind ?? "corporate",
+            created_at: data.created_at ?? null,
+            updated_at: data.updated_at ?? null,
+          };
+        });
+
         setPartnerships(items);
         setLoading(false);
+        setError(null);
       },
       (err) => {
-        console.error(err);
-        setError("Failed to load partnerships.");
+        console.error("Failed to load partnerships:", err);
+        setError("Failed to load partnerships. Please try again later.");
         setLoading(false);
-      }
+      },
     );
-    return () => unsub();
-  }, []);
 
-  const resetForm = () => {
-    setEditingId(null);
-    setName("");
-    setDescription("");
-    setWebsite("");
-    setEstablishedDate("");
-    setPublished(true);
-    setArchived(false);
-    setLogoFile(null);
-    setKind("corporate");
-  };
+    return () => unsub();
+  }, [isAdmin]);
 
   const openCreateForm = () => {
     resetForm();
@@ -492,6 +516,7 @@ const AdminPartnerships = () => {
                     <span>Archived (auto-unpublishes)</span>
                   </label>
                 </div>
+              )}
 
                 {/* Footer actions */}
                 <div className="pt-4 border-t flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
@@ -588,13 +613,102 @@ const AdminPartnerships = () => {
                 )}
               </div>
             </div>
-          )}
-        </div>
-      </section>
+          </div>
+        </section>
+      </main>
 
       <Footer />
+
+      <PartnershipEditModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        partnership={selectedPartnership}
+        onPartnershipUpdated={handleUpdated}
+      />
     </div>
   );
 };
 
 export default AdminPartnerships;
+
+// ----------------------------------------------------------------------------
+// Row component (mirrors “AdminEventCard” vibe but simpler)
+// ----------------------------------------------------------------------------
+
+function kindLabel(kind?: PartnershipKind) {
+  if (kind === "student_club") return "Student club";
+  return "Corporate";
+}
+
+function statusLabel(p: PartnershipDoc) {
+  if (p.archived) return "Archived";
+  if (p.published) return "Published";
+  return "Unpublished";
+}
+
+function AdminPartnershipRow({
+  partnership,
+  onEdit,
+}: {
+  partnership: PartnershipDoc;
+  onEdit: () => void;
+}) {
+  return (
+    <div className="py-6 border-b border-[hsl(var(--divider))]/40 flex flex-col md:flex-row md:items-center gap-5">
+      {/* Logo */}
+      <div className="w-full md:w-44 flex-shrink-0">
+        {partnership.logo_url ? (
+          <div className="h-20 border border-[hsl(var(--divider))] bg-white flex items-center justify-center p-3">
+            <img
+              src={partnership.logo_url}
+              alt={partnership.name}
+              className="max-h-14 w-full object-contain"
+            />
+          </div>
+        ) : (
+          <div className="h-20 border border-dashed border-[hsl(var(--divider))] bg-white flex items-center justify-center text-xs text-[hsl(var(--section-light-foreground))]/60">
+            No logo
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h3 className="text-lg font-semibold text-[hsl(var(--section-light-foreground))]">
+            {partnership.name}
+          </h3>
+          <span className="text-xs px-2 py-1 border border-[hsl(var(--divider))] text-[hsl(var(--section-light-foreground))]/70">
+            {kindLabel(partnership.kind)}
+          </span>
+          <span className="text-xs px-2 py-1 border border-[hsl(var(--divider))] text-[hsl(var(--section-light-foreground))]/70">
+            {statusLabel(partnership)}
+          </span>
+        </div>
+
+        {partnership.description ? (
+          <p className="mt-2 text-sm text-[hsl(var(--section-light-foreground))]/70 line-clamp-2">
+            {partnership.description}
+          </p>
+        ) : (
+          <p className="mt-2 text-sm text-[hsl(var(--section-light-foreground))]/50">
+            No description.
+          </p>
+        )}
+
+        {partnership.website ? (
+          <p className="mt-2 text-xs text-[hsl(var(--section-light-foreground))]/60 break-all">
+            {partnership.website}
+          </p>
+        ) : null}
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-3 md:justify-end">
+        <Button variant="outline" onClick={onEdit}>
+          Edit
+        </Button>
+      </div>
+    </div>
+  );
+}

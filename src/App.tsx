@@ -21,8 +21,7 @@
 
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -46,6 +45,7 @@ const Events = lazy(() => import("./pages/Events"));
 const About = lazy(() => import("./pages/About"));
 const Partnerships = lazy(() => import("./pages/Partnerships"));
 const Research = lazy(() => import("./pages/Research"));
+const Education = lazy(() => import("./pages/Education"));
 const Join = lazy(() => import("./pages/Join"));
 const Handbook = lazy(() => import("./pages/Handbook"));
 
@@ -56,6 +56,10 @@ const AdminEvents = lazy(() => import("./pages/AdminEvents"));
 const AdminMembers = lazy(() => import("./pages/AdminMembers"));
 const AdminContent = lazy(() => import("./pages/AdminContent"));
 const AdminPartnerships = lazy(() => import("./pages/AdminPartnerships"));
+const AdminResources = lazy(() => import("./pages/AdminResources"));
+const AdminResearch = lazy(() => import("./pages/AdminResearch"));
+const AdminEducation = lazy(() => import("./pages/AdminEducation"));
+const AdminInsights = lazy(() => import("./pages/AdminInsights"));
 
 // ============================================================================
 // Configuration
@@ -93,7 +97,6 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
       <BrowserRouter>
         <ScrollToTop />
         <Suspense fallback={<PageLoader />}>
@@ -104,6 +107,7 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/partnerships" element={<Partnerships />} />
             <Route path="/research" element={<Research />} />
+            <Route path="/education" element={<Education />} />
             <Route path="/join" element={<Join />} />
             <Route path="/handbook" element={<Handbook />} />
             <Route path="/handbook/*" element={<Handbook />} />
@@ -149,6 +153,38 @@ const App = () => (
               element={
                 <RequireAdmin>
                   <AdminPartnerships />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/resources"
+              element={
+                <RequireAdmin>
+                  <AdminResources />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/research"
+              element={
+                <RequireAdmin>
+                  <AdminResearch />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/education"
+              element={
+                <RequireAdmin>
+                  <AdminEducation />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/insights"
+              element={
+                <RequireAdmin>
+                  <AdminInsights />
                 </RequireAdmin>
               }
             />
