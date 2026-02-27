@@ -13,9 +13,9 @@ export const AdminPartnershipCard = ({ partnership, onEdit }: Props) => {
       <div className="flex items-start justify-between gap-6">
         {/* Left: logo + text */}
         <div className="flex items-start gap-4">
-          {partnership.logo_url && (
+          {partnership.logoUrl && (
             <img
-              src={partnership.logo_url}
+              src={partnership.logoUrl}
               alt={partnership.name}
               className="h-12 w-12 object-contain"
             />
@@ -33,11 +33,9 @@ export const AdminPartnershipCard = ({ partnership, onEdit }: Props) => {
             )}
 
             <p className="mt-2 text-xs uppercase tracking-wide text-slate-500">
-              {partnership.kind === "student_club"
-                ? "Student club partnership"
-                : partnership.kind === "university_club"
-                  ? "University club partnership"
-                  : "Corporate partnership"}
+              {partnership.category === "corporate"
+                ? "Corporate partnership"
+                : "Student club partnership"}
             </p>
           </div>
         </div>
