@@ -86,6 +86,14 @@ async function createUnsubscribeAndDeactivateUrls(email: string): Promise<{
 }
 
 export default async function handler(req: any, res: any) {
+  // Allow CORS preflight so browser POST can succeed
+  if (req.method === "OPTIONS") {
+    res.setHeader?.("Access-Control-Allow-Origin", "*");
+    res.setHeader?.("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader?.("Access-Control-Allow-Headers", "Content-Type");
+    res.status(204).end?.();
+    return;
+  }
   if (req.method !== "POST") {
     res.status(405).send("Method not allowed");
     return;
