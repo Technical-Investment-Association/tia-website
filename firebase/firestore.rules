@@ -217,6 +217,21 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // System email templates (welcome, profile_updated) – admin only
+    function isValidEmailTemplate(data) {
+      return data.keys().hasAll(["name", "content_html", "updated_at", "updated_by"]) &&
+             data.name is string &&
+             data.content_html is string &&
+             data.updated_at is timestamp &&
+             data.updated_by is string &&
+             (!("description" in data) || data.description is string);
+    }
+    match /email_templates/{id} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin() && isValidEmailTemplate(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
     // Deny everything else
     match /{document=**} {
       allow read, write: if false;

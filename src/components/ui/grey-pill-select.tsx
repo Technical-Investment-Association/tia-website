@@ -33,19 +33,19 @@ export function GreyPillSelect({
       <SelectTrigger
         className={
           triggerClassName ??
-          "w-full rounded-full border-0 bg-gray-200 pr-10 text-sm text-[hsl(var(--section-light-foreground))] outline-none focus:ring-0 focus:ring-offset-0"
+          "w-full rounded-full border-0 bg-gray-200 pr-7 text-sm text-gray-900 outline-none focus:ring-0 focus:ring-offset-0"
         }
       >
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent
-        className={`rounded-xl border-0 bg-gray-200 text-[hsl(var(--section-light-foreground))] ${className ?? ""}`}
+        className={`rounded-xl border-0 bg-gray-200 text-gray-900 ${className ?? ""}`}
       >
         {options.map((opt) => (
           <SelectItem
             key={opt.value}
             value={opt.value}
-            className="rounded-lg focus:bg-gray-300 focus:text-[hsl(var(--section-light-foreground))]"
+            className="rounded-lg focus:bg-gray-300 focus:text-gray-900"
           >
             {opt.label}
           </SelectItem>

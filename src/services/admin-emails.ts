@@ -6,6 +6,7 @@ import {
   doc,
   addDoc,
   updateDoc,
+  deleteDoc,
   getDocs,
   query,
   orderBy,
@@ -97,6 +98,10 @@ export async function updateDraft(
     html: data.html,
     updated_at: Timestamp.now(),
   });
+}
+
+export async function deleteDraft(id: string): Promise<void> {
+  await deleteDoc(doc(db, COLLECTION, id));
 }
 
 export async function markAsSent(

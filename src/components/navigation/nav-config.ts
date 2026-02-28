@@ -36,6 +36,7 @@ export const navLinks: NavItem[] = [
 export const adminNavItems: { name: string; path: string }[] = [
   { name: "Dashboard", path: "/admin" },
   { name: "Admin members", path: "/admin/members" },
+  { name: "Member analytics", path: "/admin/members/analytics" },
   { name: "Admin mail", path: "/admin/mail" },
   { name: "Admin events", path: "/admin/events" },
   { name: "Admin partnerships", path: "/admin/partnerships" },

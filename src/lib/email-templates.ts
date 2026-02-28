@@ -115,6 +115,54 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/** Build welcome email from custom content with placeholders {{full_name}}, {{email}}. */
+export function buildWelcomeFromContent(
+  contentHtml: string,
+  data: WelcomeEmailData
+): string {
+  const name = data.full_name || "there";
+  const replaced = contentHtml
+    .replace(/\{\{full_name\}\}/g, escapeHtml(name))
+    .replace(/\{\{email\}\}/g, escapeHtml(data.email));
+  return wrapBody(replaced, "Welcome to TIA");
+}
+
+/** Build profile-updated email from custom content with placeholders {{full_name}}, {{email}}, {{not_me_url}}. */
+export function buildProfileUpdatedFromContent(
+  contentHtml: string,
+  data: ProfileUpdatedEmailData
+): string {
+  const name = data.full_name || "there";
+  const replaced = contentHtml
+    .replace(/\{\{full_name\}\}/g, escapeHtml(name))
+    .replace(/\{\{email\}\}/g, escapeHtml(data.email))
+    .replace(/\{\{not_me_url\}\}/g, escapeHtml(data.not_me_url));
+  return wrapBody(replaced, "Your TIA profile was updated");
+}
+
+/** Default inner content for welcome email (with placeholders). Used when no custom template in Firestore. */
+export const defaultWelcomeContentHtml = `
+    <h1 style="${headingStyle}">Welcome to Technical Investment Association</h1>
+    <p style="${textStyle}">Hi {{full_name}},</p>
+    <p style="${textStyle}">Thank you for joining Technical Investment Association. We're glad to have you.</p>
+    <p style="${textStyle}">We look forward to seeing you at our events and keeping you updated on opportunities within investing and finance.</p>
+    <p style="${textStyle}">If you have any questions, just reply to this email.</p>
+    <p style="${footerStyle}">Technical Investment Association</p>
+  `.trim();
+
+/** Default inner content for profile-updated email (with placeholders). */
+export const defaultProfileUpdatedContentHtml = `
+    <h1 style="${headingStyle}">Your membership profile was updated</h1>
+    <p style="${textStyle}">Hi {{full_name}},</p>
+    <p style="${textStyle}">Your membership information with Technical Investment Association has just been updated.</p>
+    <p style="${textStyle}">If this was you, no further action is required.</p>
+    <p style="${textStyle}">If this was <strong>not</strong> you, please click the link below so we can review it:</p>
+    <p style="margin: 16px 0 0 0;">
+      <a href="{{not_me_url}}" style="${buttonStyle}">This was not me</a>
+    </p>
+    <p style="${footerStyle}">Technical Investment Association</p>
+  `.trim();
+
 /** Sample data for previewing templates. */
 export const sampleWelcomeData: WelcomeEmailData = {
   full_name: "Alex Johnson",

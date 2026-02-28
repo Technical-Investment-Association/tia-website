@@ -4,13 +4,15 @@
  */
 
 import {
-  getWelcomeEmailHtml,
-  getProfileUpdatedEmailHtml,
   getCampaignEmailHtml,
+  sampleCampaignData,
   sampleWelcomeData,
   sampleProfileUpdatedData,
-  sampleCampaignData,
 } from "../../lib/email-templates";
+import {
+  getWelcomeEmailHtmlResolved,
+  getProfileUpdatedEmailHtmlResolved,
+} from "../../../server/emailTemplatesServer";
 
 export default async function handler(req: { method?: string; query?: Record<string, string> }, res: { setHeader: (k: string, v: string) => void; status: (n: number) => { json: (o: object) => void; send: (s: string) => void; end: () => void } }): Promise<void> {
   if (req.method !== "GET") {
@@ -26,10 +28,10 @@ export default async function handler(req: { method?: string; query?: Record<str
   let html: string;
   switch (template) {
     case "welcome":
-      html = getWelcomeEmailHtml(sampleWelcomeData);
+      html = await getWelcomeEmailHtmlResolved(sampleWelcomeData);
       break;
     case "profile-updated":
-      html = getProfileUpdatedEmailHtml(sampleProfileUpdatedData);
+      html = await getProfileUpdatedEmailHtmlResolved(sampleProfileUpdatedData);
       break;
     case "campaign":
       html = getCampaignEmailHtml({

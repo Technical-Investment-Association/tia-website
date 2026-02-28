@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GreyPillSelect } from "@/components/ui/grey-pill-select";
 import { EmailComposeModal } from "@/components/modals/email-compose-modal";
+import { SystemTemplateEditModal } from "@/components/modals/system-template-edit-modal";
 import type { AdminEmail } from "@/services/admin-emails";
 import { fetchDrafts, fetchRecentlySent } from "@/services/admin-emails";
 
@@ -32,6 +33,7 @@ export default function AdminMail() {
   const [loadingSent, setLoadingSent] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalEmail, setModalEmail] = useState<AdminEmail | null>(null);
+  const [systemTemplateEditId, setSystemTemplateEditId] = useState<"welcome" | "profile_updated" | null>(null);
   const [editTemplate, setEditTemplate] = useState<string>("welcome");
   const [previewKey, setPreviewKey] = useState(0);
 
@@ -103,18 +105,27 @@ export default function AdminMail() {
         <Section>
           <div className="grid-inner py-16 md:py-20">
             <div className="col-span-12">
-              <div className="mb-8 text-center">
-                <h1 className="text-3xl font-normal text-[hsl(var(--section-light-foreground))] md:text-4xl">
+              <div className="mb-8">
+                <h1 className="text-center text-3xl font-normal text-gray-900 md:text-4xl">
                   Compose, send and edit emails
                 </h1>
+                <div className="mt-4 flex justify-center">
+                  <Button
+                    type="button"
+                    onClick={openNewEmail}
+                    className="rounded-full bg-primary text-white hover:bg-primary/85 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  >
+                    New email
+                  </Button>
+                </div>
                 <div className="mt-4 flex justify-center gap-1 rounded-full bg-gray-100 p-1">
                   <button
                     type="button"
                     onClick={() => setActiveTab("templates")}
                     className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                       activeTab === "templates"
-                        ? "bg-white text-[hsl(var(--section-light-foreground))] shadow-sm"
-                        : "text-[hsl(var(--section-light-foreground))]/70 hover:text-[hsl(var(--section-light-foreground))]"
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
                     }`}
                   >
                     Templates
@@ -124,8 +135,8 @@ export default function AdminMail() {
                     onClick={() => setActiveTab("drafts")}
                     className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                       activeTab === "drafts"
-                        ? "bg-white text-[hsl(var(--section-light-foreground))] shadow-sm"
-                        : "text-[hsl(var(--section-light-foreground))]/70 hover:text-[hsl(var(--section-light-foreground))]"
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
                     }`}
                   >
                     Drafts
@@ -135,8 +146,8 @@ export default function AdminMail() {
                     onClick={() => setActiveTab("recently-sent")}
                     className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                       activeTab === "recently-sent"
-                        ? "bg-white text-[hsl(var(--section-light-foreground))] shadow-sm"
-                        : "text-[hsl(var(--section-light-foreground))]/70 hover:text-[hsl(var(--section-light-foreground))]"
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
                     }`}
                   >
                     Recently sent
@@ -149,28 +160,26 @@ export default function AdminMail() {
                 <Card className="overflow-hidden border-0 bg-white shadow-none">
                   <div className="space-y-6 px-6 py-4">
                     <div>
-                      <Button
-                        type="button"
-                        onClick={openNewEmail}
-                        className="rounded-full"
-                      >
-                        New email
-                      </Button>
-                    </div>
-                    <div>
-                      <h2 className="mb-3 text-lg font-semibold text-[hsl(var(--section-light-foreground))]">
+                      <h2 className="mb-3 text-xl font-normal text-gray-900">
                         System templates
                       </h2>
-                      <p className="mb-3 text-sm text-[hsl(var(--section-light-foreground))]/60">
+                      <p className="mb-3 text-sm text-gray-700">
                         Preview the automated membership emails. These are used when members sign up or update their profile.
                       </p>
-                      <div className="mb-3">
+                      <div className="mb-3 flex flex-wrap items-center gap-3">
                         <GreyPillSelect
                           value={editTemplate}
                           onValueChange={setEditTemplate}
                           options={EDIT_TEMPLATE_OPTIONS}
-                          triggerClassName="w-full max-w-[280px] rounded-full border-0 bg-gray-200 pr-10 text-sm outline-none focus:ring-0 focus:ring-offset-0"
+                          triggerClassName="w-full max-w-[280px] rounded-full border-0 bg-gray-200 pr-7 text-sm text-gray-900 outline-none focus:ring-0 focus:ring-offset-0"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setSystemTemplateEditId(editTemplate as "welcome" | "profile_updated")}
+                          className="text-sm text-gray-900 underline decoration-gray-400 underline-offset-2 hover:decoration-gray-900"
+                        >
+                          Edit template
+                        </button>
                       </div>
                       <div className="rounded-lg bg-gray-50/50">
                         <iframe
@@ -184,7 +193,7 @@ export default function AdminMail() {
                       <button
                         type="button"
                         onClick={() => setPreviewKey((k) => k + 1)}
-                        className="mt-2 text-sm text-black underline decoration-black/50 underline-offset-2 hover:decoration-black"
+                        className="mt-2 text-sm text-gray-700 underline decoration-gray-400 underline-offset-2 hover:decoration-gray-700"
                       >
                         Refresh preview
                       </button>
@@ -197,13 +206,13 @@ export default function AdminMail() {
               {activeTab === "drafts" && (
                 <Card className="overflow-hidden border-0 bg-white shadow-none">
                   <div className="px-6 py-4">
-                    <h2 className="mb-4 text-lg font-semibold text-[hsl(var(--section-light-foreground))]">
+                    <h2 className="mb-4 text-xl font-normal text-gray-900">
                       Drafts
                     </h2>
                     {loadingDrafts ? (
-                      <p className="text-sm text-[hsl(var(--section-light-foreground))]/60">Loading…</p>
+                      <p className="text-sm text-gray-600">Loading…</p>
                     ) : drafts.length === 0 ? (
-                      <p className="text-sm text-[hsl(var(--section-light-foreground))]/60">No drafts yet.</p>
+                      <p className="text-sm text-gray-600">No drafts yet.</p>
                     ) : (
                       <ul className="space-y-2">
                         {drafts.map((d) => (
@@ -213,10 +222,10 @@ export default function AdminMail() {
                               onClick={() => openDraft(d)}
                               className="w-full rounded-lg bg-gray-100/80 px-4 py-3 text-left transition-colors hover:bg-gray-200/80"
                             >
-                              <span className="font-medium text-[hsl(var(--section-light-foreground))]">
+                              <span className="font-medium text-gray-900">
                                 {d.subject || "(No subject)"}
                               </span>
-                              <span className="ml-2 text-sm text-[hsl(var(--section-light-foreground))]/60">
+                              <span className="ml-2 text-sm text-gray-600">
                                 {d.audience} · updated {d.updated_at.toLocaleDateString()}
                               </span>
                             </button>
@@ -232,13 +241,13 @@ export default function AdminMail() {
               {activeTab === "recently-sent" && (
                 <Card className="overflow-hidden border-0 bg-white shadow-none">
                   <div className="px-6 py-4">
-                    <h2 className="mb-4 text-lg font-semibold text-[hsl(var(--section-light-foreground))]">
+                    <h2 className="mb-4 text-xl font-normal text-gray-900">
                       Recently sent
                     </h2>
                     {loadingSent ? (
-                      <p className="text-sm text-[hsl(var(--section-light-foreground))]/60">Loading…</p>
+                      <p className="text-sm text-gray-600">Loading…</p>
                     ) : recentlySent.length === 0 ? (
-                      <p className="text-sm text-[hsl(var(--section-light-foreground))]/60">No sent emails yet.</p>
+                      <p className="text-sm text-gray-600">No sent emails yet.</p>
                     ) : (
                       <ul className="space-y-2">
                         {recentlySent.map((e) => (
@@ -248,10 +257,10 @@ export default function AdminMail() {
                               onClick={() => openSent(e)}
                               className="w-full rounded-lg bg-gray-100/80 px-4 py-3 text-left transition-colors hover:bg-gray-200/80"
                             >
-                              <span className="font-medium text-[hsl(var(--section-light-foreground))]">
+                              <span className="font-medium text-gray-900">
                                 {e.subject || "(No subject)"}
                               </span>
-                              <span className="ml-2 text-sm text-[hsl(var(--section-light-foreground))]/60">
+                              <span className="ml-2 text-sm text-gray-600">
                                 {e.audience} · sent {e.sent_at?.toLocaleDateString() ?? ""}
                               </span>
                             </button>
@@ -278,6 +287,15 @@ export default function AdminMail() {
           refreshRecentlySent();
         }}
       />
+
+      {systemTemplateEditId && (
+        <SystemTemplateEditModal
+          isOpen={true}
+          onClose={() => setSystemTemplateEditId(null)}
+          templateId={systemTemplateEditId}
+          onSaved={() => setPreviewKey((k) => k + 1)}
+        />
+      )}
     </div>
   );
 }

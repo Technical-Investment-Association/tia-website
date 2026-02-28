@@ -15,6 +15,7 @@ import {
   updateDraft,
   markAsSent,
   createSentEmail,
+  deleteDraft,
 } from "@/services/admin-emails";
 
 const AUDIENCES = [
@@ -55,6 +56,9 @@ export function EmailComposeModal({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sendResult, setSendResult] = useState<{ sent: number; total?: number } | null>(null);
+  const [showSendConfirm, setShowSendConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -62,6 +66,8 @@ export function EmailComposeModal({
     setSubject(email?.subject ?? "");
     setHtml(email?.html ?? defaultBody);
     setShowPreview(false);
+    setShowSendConfirm(false);
+    setShowDeleteConfirm(false);
     setPreviewKey((k) => k + 1);
     setError(null);
     setSendResult(null);
@@ -110,6 +116,7 @@ export function EmailComposeModal({
     setError(null);
     setSendResult(null);
     setSending(true);
+    setShowSendConfirm(false);
     try {
       const token = await user.getIdToken();
       const res = await fetch("/api/admin/send-mail", {
@@ -149,8 +156,25 @@ export function EmailComposeModal({
     }
   };
 
+  const handleDeleteDraft = async () => {
+    if (!email || isNew || isViewOnly) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteDraft(email.id);
+      onSaved?.();
+      handleClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delete draft");
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   if (!isOpen) return null;
 
+  const audienceLabel = AUDIENCES.find((a) => a.value === audience)?.label ?? audience;
   const title = isNew
     ? "New email"
     : isViewOnly
@@ -159,6 +183,59 @@ export function EmailComposeModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      {/* Send confirmation */}
+      {showSendConfirm && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900">Send email?</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              You are sending this to <strong>{audienceLabel}</strong>. Are you sure? Once sent, it cannot be cancelled.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowSendConfirm(false)}
+                disabled={sending}
+                className="text-sm font-medium text-gray-900 underline decoration-gray-400 underline-offset-2 hover:decoration-gray-900 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={sending}
+                className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/85 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 disabled:pointer-events-none disabled:opacity-50"
+              >
+                {sending ? "Sending…" : "Send email"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete draft confirmation */}
+      {showDeleteConfirm && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900">Delete draft?</h3>
+            <p className="mt-2 text-sm text-gray-600">This draft will be permanently deleted. This cannot be undone.</p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="text-sm font-medium text-gray-900 underline decoration-gray-400 underline-offset-2 hover:decoration-gray-900 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <Button type="button" variant="destructive" onClick={handleDeleteDraft} disabled={deleting}>
+                {deleting ? "Deleting…" : "Delete draft"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-[hsl(var(--divider))] px-6 py-4">
@@ -183,9 +260,9 @@ export function EmailComposeModal({
                 <button
                   type="button"
                   onClick={() => setShowPreview(false)}
-                  className="rounded-full bg-gray-200 px-4 py-2 text-sm font-medium text-[hsl(var(--section-light-foreground))] hover:bg-gray-300"
+                  className="text-sm font-medium text-gray-900 underline decoration-gray-400 underline-offset-2 hover:decoration-gray-900"
                 >
-                  Back to editing
+                  {isViewOnly ? "Back" : "Back to editing"}
                 </button>
               </div>
               <div className="rounded-lg bg-gray-50/50">
@@ -211,7 +288,7 @@ export function EmailComposeModal({
                     value={audience}
                     onValueChange={setAudience}
                     options={AUDIENCES}
-                    triggerClassName="w-full rounded-full border-0 bg-gray-200 pr-10 text-sm outline-none focus:ring-0 focus:ring-offset-0"
+                    triggerClassName="w-full rounded-full border-0 bg-gray-200 pr-7 text-sm text-gray-900 outline-none focus:ring-0 focus:ring-offset-0"
                   />
                 )}
               </div>
@@ -226,7 +303,19 @@ export function EmailComposeModal({
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-[hsl(var(--section-light-foreground))]">Body (HTML)</Label>
+                <div className="flex items-center gap-2">
+                  <Label className="text-[hsl(var(--section-light-foreground))]">Body (HTML)</Label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewKey((k) => k + 1);
+                      setShowPreview(true);
+                    }}
+                    className="text-sm text-gray-900 underline decoration-gray-400 underline-offset-2 hover:decoration-gray-900"
+                  >
+                    Preview
+                  </button>
+                </div>
                 <textarea
                   value={html}
                   onChange={(e) => setHtml(e.target.value)}
@@ -235,11 +324,6 @@ export function EmailComposeModal({
                   className="w-full resize-y rounded-lg border-0 bg-gray-100/80 p-3 font-mono text-sm text-[hsl(var(--section-light-foreground))] outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
                   placeholder="<p>Hi everyone,</p>..."
                 />
-                {!isViewOnly && (
-                  <p className="text-xs text-[hsl(var(--section-light-foreground))]/60">
-                    Use HTML (e.g. &lt;p&gt;, &lt;strong&gt;, &lt;a href="..."&gt;). Use Preview to see how it looks.
-                  </p>
-                )}
               </div>
               {error && (
                 <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -255,53 +339,40 @@ export function EmailComposeModal({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-[hsl(var(--divider))] px-6 py-4">
-          {!showPreview && (
-            <button
-              type="button"
-              role="switch"
-              aria-checked={showPreview}
-              onClick={() => {
-                setPreviewKey((k) => k + 1);
-                setShowPreview(true);
-              }}
-              className="rounded-full bg-gray-200 px-4 py-2 text-sm font-medium text-[hsl(var(--section-light-foreground))] hover:bg-gray-300"
-            >
-              Preview
-            </button>
-          )}
-          {!isViewOnly && !showPreview && (
-            <>
+        {/* Footer – only when editing (not view-only) and not in preview */}
+        {!showPreview && !isViewOnly && (
+          <div className="flex shrink-0 w-full flex-wrap items-center justify-between gap-3 border-t border-[hsl(var(--divider))] px-6 py-4">
+            <div className="flex flex-wrap items-center gap-3">
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleSaveDraft}
-                disabled={saving || sending}
-                className="rounded-full border-[hsl(var(--divider))]"
+                disabled={saving || sending || deleting}
+                className="rounded-full border-[hsl(var(--divider))] focus-visible:ring-0 focus-visible:ring-offset-0"
               >
                 {saving ? "Saving…" : "Save draft"}
               </Button>
-              <Button
-                type="button"
-                onClick={handleSend}
-                disabled={saving || sending}
-                className="rounded-full"
-              >
-                {sending ? "Sending…" : "Send email"}
-              </Button>
-            </>
-          )}
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={handleClose}
-            disabled={saving || sending}
-            className="ml-auto rounded-full"
-          >
-            Close
-          </Button>
-        </div>
+              {!isNew && email && (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={saving || sending || deleting}
+                  className="text-sm font-medium text-red-600 underline decoration-red-600/50 underline-offset-2 hover:decoration-red-600 disabled:opacity-50"
+                >
+                  {deleting ? "Deleting…" : "Delete draft"}
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowSendConfirm(true)}
+              disabled={saving || sending || deleting}
+              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/85 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 disabled:pointer-events-none disabled:opacity-50"
+            >
+              {sending ? "Sending…" : "Send email"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

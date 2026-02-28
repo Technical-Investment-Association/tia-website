@@ -54,6 +54,7 @@ const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const Admin = lazy(() => import("./pages/Admin"));
 const AdminEvents = lazy(() => import("./pages/AdminEvents"));
 const AdminMembers = lazy(() => import("./pages/AdminMembers"));
+const AdminMemberAnalytics = lazy(() => import("./pages/AdminMemberAnalytics"));
 const AdminContent = lazy(() => import("./pages/AdminContent"));
 const AdminPartnerships = lazy(() => import("./pages/AdminPartnerships"));
 const AdminResources = lazy(() => import("./pages/AdminResources"));
@@ -138,6 +139,14 @@ const App = () => (
               element={
                 <RequireAdmin>
                   <AdminMembers />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/members/analytics"
+              element={
+                <RequireAdmin>
+                  <AdminMemberAnalytics />
                 </RequireAdmin>
               }
             />

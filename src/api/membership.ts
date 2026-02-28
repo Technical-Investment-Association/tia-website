@@ -4,9 +4,9 @@ import crypto from "crypto";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { adminDb } from "../server/firebaseAdmin";
 import {
-  getWelcomeEmailHtml,
-  getProfileUpdatedEmailHtml,
-} from "../lib/email-templates";
+  getWelcomeEmailHtmlResolved,
+  getProfileUpdatedEmailHtmlResolved,
+} from "../server/emailTemplatesServer";
 
 // Resend is optional: use placeholder when no key so the server can start (emails only sent when RESEND_API_KEY is set)
 const resend = new Resend(process.env.RESEND_API_KEY || "re_local_dev_no_send");
@@ -113,7 +113,7 @@ export default async function handler(req: any, res: any) {
 
         // Welcome email
         if (process.env.RESEND_API_KEY) {
-          const html = getWelcomeEmailHtml({
+          const html = await getWelcomeEmailHtmlResolved({
             full_name: data.full_name as string | undefined,
             email,
           });
@@ -169,7 +169,7 @@ export default async function handler(req: any, res: any) {
 
       // "Profile updated" email with "Not me" link
       if (process.env.RESEND_API_KEY) {
-        const html = getProfileUpdatedEmailHtml({
+        const html = await getProfileUpdatedEmailHtmlResolved({
           full_name: data.full_name as string | undefined,
           email,
           not_me_url: notMeUrl,

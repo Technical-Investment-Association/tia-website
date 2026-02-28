@@ -15,10 +15,11 @@ import {
   updateDoc,
   Timestamp,
 } from "firebase/firestore";
-import { Search, Pencil, Trash2 } from "lucide-react";
+import { Search, Pencil, Trash2, BarChart3 } from "lucide-react";
 
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import { Link } from "react-router-dom";
 import { db } from "@/lib/firebase/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Section } from "@/components/layout/Section";
@@ -188,6 +189,15 @@ export default function AdminMembers() {
               <p className="mb-8 max-w-2xl text-[hsl(var(--section-light-foreground))]/70">
                 Member signups from the Join page and newsletter-only subscribers. You can edit members, toggle newsletter consent, and delete entries.
               </p>
+              <div className="mb-6">
+                <Link
+                  to="/admin/members/analytics"
+                  className="inline-flex items-center gap-2 rounded-md border border-[hsl(var(--divider))] bg-white px-4 py-2 text-sm font-medium text-[hsl(var(--section-light-foreground))] hover:bg-[hsl(var(--section-light))]"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  View analytics
+                </Link>
+              </div>
 
               {loading && (
                 <p className="text-sm text-[hsl(var(--section-light-foreground))]/60">Loading…</p>
