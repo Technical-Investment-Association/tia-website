@@ -5,7 +5,13 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 // Adjust this path if your firebaseAdmin file is in a different place:
 import { adminDb } from "../server/firebaseAdmin";
 
-const resend = new Resend(process.env.RESEND_API_KEY ?? "");
+// Resend is optional: use placeholder when no key so the server can start (emails only sent when RESEND_API_KEY is set)
+const resend = new Resend(process.env.RESEND_API_KEY || "re_local_dev_no_send");
+
+const DEFAULT_FROM = "Technical Investment Association <membership@tiaassociation.com>";
+function getFromAddress(): string {
+  return process.env.RESEND_FROM_EMAIL || DEFAULT_FROM;
+}
 
 // Hash IP so we don't store raw addresses (privacy-friendly)
 function hashIp(ip: string | undefined): string | null {
@@ -49,13 +55,19 @@ export default async function handler(req: any, res: any) {
   const email = String(data.email).trim().toLowerCase();
   const memberRef = adminDb.collection("member_signups").doc(email);
 
+  // Firestore does not accept undefined; strip those keys from data
+  const cleanData = Object.fromEntries(
+    Object.entries(data).filter(([, v]) => v !== undefined)
+  ) as Record<string, unknown>;
+
   try {
     const snap = await memberRef.get();
 
-    const ipHeader = req.headers["x-forwarded-for"] as string | undefined;
+    const headers = req.headers ?? {};
+    const ipHeader = headers["x-forwarded-for"] as string | undefined;
     const ip = ipHeader?.split(",")[0];
     const ipHash = hashIp(ip);
-    const ua = (req.headers["user-agent"] as string | undefined) ?? null;
+    const ua = (headers["user-agent"] as string | undefined) ?? null;
 
     // ---------- MODE: "check" ----------
     if (mode === "check") {
@@ -86,7 +98,7 @@ export default async function handler(req: any, res: any) {
       // New member profile
       if (!snap.exists) {
         await memberRef.set({
-          ...data,
+          ...cleanData,
           email,
           created_at: now,
           updated_at: now,
@@ -99,7 +111,7 @@ export default async function handler(req: any, res: any) {
         // Welcome email
         if (process.env.RESEND_API_KEY) {
           await resend.emails.send({
-            from: "Technical Investment Association <membership@tiaassociation.com>",
+            from: getFromAddress(),
             to: email,
             subject: "Welcome to Technical Investment Association",
             html: `
@@ -135,7 +147,7 @@ export default async function handler(req: any, res: any) {
 
       // Update profile
       await memberRef.update({
-        ...data,
+        ...cleanData,
         email,
         updated_at: now,
         signup_count: signupCount + 1,
@@ -155,7 +167,7 @@ export default async function handler(req: any, res: any) {
       // "Profile updated" email with "Not me" link
       if (process.env.RESEND_API_KEY) {
         await resend.emails.send({
-          from: "Technical Investment Association <membership@tiaassociation.com>",
+          from: getFromAddress(),
           to: email,
           subject: "Your TIA membership profile has been updated",
           html: `

@@ -22,6 +22,7 @@ A practical guide for handing over the TIA website to another developer or team,
 
 | I want to… | Look here |
 |------------|-----------|
+| **Domain / email** | **Domain:** Squarespace. **Receiving:** ImprovMX (aliases). **Sending:** Resend (membership API emails). See [RESEND_SETUP.md](./RESEND_SETUP.md). |
 | Add or change a **public nav link** | `src/components/navigation/nav-config.ts` → `navLinks` |
 | Add or change an **admin menu item** | `src/components/navigation/nav-config.ts` → `adminNavItems`, then add the route in `App.tsx` |
 | Add a **new page** | Create `src/pages/YourPage.tsx`, add lazy import + `<Route>` in `App.tsx` |

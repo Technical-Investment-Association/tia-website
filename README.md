@@ -24,6 +24,8 @@ Open http://localhost:8080. Full setup steps and env vars are in **[docs/SETUP.m
 | Doc | Purpose |
 |-----|---------|
 | [**docs/SETUP.md**](docs/SETUP.md) | Environment, Firebase, commands, deployment |
+| [**docs/MEMBERSHIP_API.md**](docs/MEMBERSHIP_API.md) | Why the Join API exists, how to set it up, env vars |
+| [**docs/RESEND_SETUP.md**](docs/RESEND_SETUP.md) | Resend email: API key, domain verification, welcome/update emails |
 | [**docs/ARCHITECTURE.md**](docs/ARCHITECTURE.md) | Structure, routing, auth, design tokens, performance |
 | [**docs/HANDOVER.md**](docs/HANDOVER.md) | Onboarding, where things live, handover checklist |
 
@@ -58,13 +60,14 @@ Details and conventions are in **docs/ARCHITECTURE.md**.
 | Command | Description |
 |---------|-------------|
 | `pnpm run dev` | Start dev server (port 8080) |
+| `pnpm run dev:full` | Dev server + local membership API (for testing Join form) |
 | `pnpm run build` | Production build |
 | `pnpm run preview` | Preview production build locally |
 | `pnpm run lint` | Run ESLint |
 
 ## Deployment
 
-The frontend is typically deployed on **Vercel**. Push to `main` to trigger a build. Set the same Firebase env vars in the Vercel project. Backend is Firebase only (no separate server).
+The frontend is typically deployed on **Vercel**. Push to `main` to trigger a build. Set the same Firebase env vars in the Vercel project. The **Join** form uses serverless API routes (`/api/membership` and `/api/membership/not-me`); see **[docs/MEMBERSHIP_API.md](docs/MEMBERSHIP_API.md)** for required env vars (Firebase Admin + optional Resend) and for running the API locally with `vercel dev`.
 
 ## Contributing
 
