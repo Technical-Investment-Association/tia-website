@@ -80,7 +80,7 @@ If prompted, log in with `vercel login` (device flow). Then open the URL Vercel 
     - `FIREBASE_CLIENT_EMAIL`  
     - `FIREBASE_PRIVATE_KEY` (full key; if you paste from Firebase Console, keep newlines or use `\n` in one line and the code will replace `\\n`)
 
-  - If you see **500 / "This Serverless Function has crashed"** when opening confirm-email or other API links: check that all three Firebase vars are set in Vercel for the correct environment (Production/Preview). The private key must be the full PEM including `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----`; in Vercel you can paste it as one line with `\n` for newlines.
+  - If you see **500 / "This Serverless Function has crashed"** when opening confirm-email or when signing up: check that all three Firebase vars are set in Vercel for the correct environment (Production/Preview). The private key must be the full PEM including `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----`. If you pasted it as one line (e.g. Vercel stripped newlines), the code will try to normalize it; if it still fails, open **Vercel → Project → Logs**, find the failed request, and read the error message to see whether it’s a cert/key error or something else.
 
   - **Optional**  
     - `RESEND_API_KEY` – If set, the API sends welcome and “profile updated” emails via Resend.  
@@ -88,6 +88,11 @@ If prompted, log in with `vercel login` (device flow). Then open the URL Vercel 
 
 - **Rewrites**  
   Your `vercel.json` currently rewrites all routes to `/`. Vercel runs **API routes before rewrites**, so `/api/membership` and `/api/membership/not-me` are still served by the serverless functions. No change to `vercel.json` is required for the API to work.
+
+- **405 on POST /api/membership**  
+  If the Join form gets **405 Method Not Allowed** in production, the request may be hitting the static app instead of the serverless function. In **Vercel → Project → Settings → Build & Development**:
+  - Ensure **Output Directory** is **empty** or set to **`.`** (project root). If it is set to **`dist`** only, Vercel deploys only the contents of `dist/` and the **`api/`** folder is not included, so `/api/membership` has no function and falls through to the SPA (which returns 405 for POST).
+  - Build command should be **`pnpm run build`** (or `vite build && node scripts/build-api.mjs`) so that `api/*.js` bundles are produced before deploy. The repo’s `vercel.json` sets `buildCommand` to `pnpm run build` so the API bundle step runs.
 
 ### 3. Getting Firebase Admin credentials
 
