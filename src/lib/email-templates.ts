@@ -53,11 +53,13 @@ const baseStyles = `
 const containerStyle =
   "max-width: 560px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff;";
 
-const headingStyle = "font-size: 22px; font-weight: 600; color: #1a1a1a; margin: 0 0 16px 0;";
+const headingStyle =
+  "font-size: 22px; font-weight: 600; color: #1a1a1a; margin: 0 0 16px 0;";
 const textStyle = "margin: 0 0 12px 0; color: #333333;";
 const buttonStyle =
   "display: inline-block; margin: 20px 0 0 0; padding: 12px 24px; background-color: #2563eb; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: 500;";
-const footerStyle = "margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 13px; color: #6b7280;";
+const footerStyle =
+  "margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 13px; color: #6b7280;";
 
 /** GDPR-compliant footer for all membership emails: unsubscribe + deactivate profile. Use placeholders {{unsubscribe_url}} and {{deactivate_profile_url}}. */
 export const GDPR_FOOTER_HTML = `
@@ -92,7 +94,7 @@ function wrapBody(content: string, preheader?: string): string {
 /** Welcome email (new member signup). */
 export function getWelcomeEmailHtml(
   data: WelcomeEmailData,
-  _opts: { from_label?: string } = {}
+  _opts: { from_label?: string } = {},
 ): string {
   const name = data.full_name || "there";
   const unsub = data.unsubscribe_url ?? "#";
@@ -112,7 +114,7 @@ export function getWelcomeEmailHtml(
 /** Profile updated email (with "Not me" link). */
 export function getProfileUpdatedEmailHtml(
   data: ProfileUpdatedEmailData,
-  _opts: { from_label?: string } = {}
+  _opts: { from_label?: string } = {},
 ): string {
   const name = data.full_name || "there";
   const unsub = data.unsubscribe_url ?? "#";
@@ -135,7 +137,7 @@ export function getProfileUpdatedEmailHtml(
 /** Confirm email (sent after welcome; link to confirm email address). Stored in Firebase, editable like welcome. */
 export function getConfirmEmailHtml(
   data: ConfirmEmailData,
-  _opts: { from_label?: string } = {}
+  _opts: { from_label?: string } = {},
 ): string {
   const name = data.full_name || "there";
   const unsub = data.unsubscribe_url ?? "#";
@@ -156,7 +158,7 @@ export function getConfirmEmailHtml(
 /** Email sent when someone tries to sign up with an existing email – link to update profile or confirm it's them. */
 export function getUpdateProfileLinkEmailHtml(
   data: UpdateProfileLinkEmailData,
-  _opts: { from_label?: string } = {}
+  _opts: { from_label?: string } = {},
 ): string {
   const name = data.full_name || "there";
   const unsub = data.unsubscribe_url ?? "#";
@@ -197,7 +199,7 @@ function escapeHtml(s: string): string {
 /** Build welcome email from custom content with placeholders {{full_name}}, {{email}}, {{unsubscribe_url}}, {{deactivate_profile_url}}. */
 export function buildWelcomeFromContent(
   contentHtml: string,
-  data: WelcomeEmailData
+  data: WelcomeEmailData,
 ): string {
   const name = data.full_name || "there";
   const unsub = data.unsubscribe_url ?? "#";
@@ -213,7 +215,7 @@ export function buildWelcomeFromContent(
 /** Build profile-updated email from custom content with placeholders {{full_name}}, {{email}}, {{not_me_url}}, {{unsubscribe_url}}, {{deactivate_profile_url}}. */
 export function buildProfileUpdatedFromContent(
   contentHtml: string,
-  data: ProfileUpdatedEmailData
+  data: ProfileUpdatedEmailData,
 ): string {
   const name = data.full_name || "there";
   const unsub = data.unsubscribe_url ?? "#";
@@ -230,7 +232,7 @@ export function buildProfileUpdatedFromContent(
 /** Build confirm-email from custom content with placeholders {{full_name}}, {{email}}, {{confirm_email_url}}, {{unsubscribe_url}}, {{deactivate_profile_url}}. */
 export function buildConfirmEmailFromContent(
   contentHtml: string,
-  data: ConfirmEmailData
+  data: ConfirmEmailData,
 ): string {
   const name = data.full_name || "there";
   const unsub = data.unsubscribe_url ?? "#";
@@ -285,7 +287,8 @@ export const defaultConfirmEmailContentHtml = `
 export const sampleWelcomeData: WelcomeEmailData = {
   full_name: "Alex Johnson",
   email: "alex@example.com",
-  unsubscribe_url: "https://example.com/api/membership/unsubscribe?token=sample",
+  unsubscribe_url:
+    "https://example.com/api/membership/unsubscribe?token=sample",
   deactivate_profile_url: "https://example.com/profile/deactivate?token=sample",
 };
 
@@ -294,15 +297,18 @@ export const sampleProfileUpdatedData: ProfileUpdatedEmailData = {
   email: "alex@example.com",
   not_me_url:
     "https://example.com/api/membership/not-me?email=alex%40example.com&token=sample-token",
-  unsubscribe_url: "https://example.com/api/membership/unsubscribe?token=sample",
+  unsubscribe_url:
+    "https://example.com/api/membership/unsubscribe?token=sample",
   deactivate_profile_url: "https://example.com/profile/deactivate?token=sample",
 };
 
 export const sampleConfirmEmailData: ConfirmEmailData = {
   full_name: "Alex Johnson",
   email: "alex@example.com",
-  confirm_email_url: "https://example.com/api/membership/confirm-email?token=sample",
-  unsubscribe_url: "https://example.com/api/membership/unsubscribe?token=sample",
+  confirm_email_url:
+    "https://example.com/api/membership/confirm-email?token=sample",
+  unsubscribe_url:
+    "https://example.com/api/membership/unsubscribe?token=sample",
   deactivate_profile_url: "https://example.com/profile/deactivate?token=sample",
 };
 

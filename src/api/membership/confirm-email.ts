@@ -17,6 +17,26 @@ function getBaseUrl(): string {
   return base;
 }
 
+function doRedirect(res: any, url: string, status = 302): void {
+  try {
+    if (typeof res.redirect === "function") {
+      res.redirect(status, url);
+    } else if (typeof res.writeHead === "function" && typeof res.end === "function") {
+      res.writeHead(status, { Location: url });
+      res.end();
+    } else {
+      res.status(302).setHeader?.("Location", url);
+      res.end?.();
+    }
+  } catch (_) {
+    try {
+      res.status(302);
+      res.setHeader?.("Location", url);
+      res.end?.();
+    } catch (_) {}
+  }
+}
+
 export default async function handler(req: any, res: any): Promise<void> {
   if (req.method !== "GET") {
     res.setHeader?.("Allow", "GET");
@@ -25,13 +45,21 @@ export default async function handler(req: any, res: any): Promise<void> {
   }
 
   const token = req.query?.token as string;
-  if (!token?.trim()) {
+  const tokenFromUrl =
+    typeof req.url === "string" && req.url.includes("token=")
+      ? new URL(req.url, "http://localhost").searchParams.get("token")
+      : null;
+  const tokenValue = (token?.trim() || tokenFromUrl?.trim() || "") as string;
+  if (!tokenValue) {
     res.status(400).send("Missing token");
     return;
   }
 
+  const redirectOk = () => doRedirect(res, `${getBaseUrl()}/profile/confirmed`);
+  const redirectError = () => doRedirect(res, `${getBaseUrl()}/profile/confirmed?error=1`);
+
   try {
-    const tokenRef = adminDb.collection(TOKEN_COLLECTION).doc(String(token).trim());
+    const tokenRef = adminDb.collection(TOKEN_COLLECTION).doc(tokenValue);
     const tokenSnap = await tokenRef.get();
 
     if (!tokenSnap.exists) {
@@ -41,7 +69,7 @@ export default async function handler(req: any, res: any): Promise<void> {
 
     const tokenData = tokenSnap.data() as { email: string; used?: boolean };
     if (tokenData.used) {
-      res.status(400).send("This link has already been used");
+      redirectOk();
       return;
     }
 
@@ -52,32 +80,21 @@ export default async function handler(req: any, res: any): Promise<void> {
     }
 
     const memberRef = adminDb.collection(MEMBER_COLLECTION).doc(email);
-    await memberRef.update({
-      email_confirmed: true,
-      updated_at: FieldValue.serverTimestamp(),
-    });
+    const memberSnap = await memberRef.get();
+    if (memberSnap.exists) {
+      await memberRef.update({
+        email_confirmed: true,
+        updated_at: FieldValue.serverTimestamp(),
+      });
+    }
     await tokenRef.update({
       used: true,
       used_at: FieldValue.serverTimestamp(),
     });
 
-    const baseUrl = getBaseUrl();
-    const redirectUrl = `${baseUrl}/profile/confirmed`;
-    if (typeof res.redirect === "function") {
-      res.redirect(302, redirectUrl);
-    } else {
-      res.writeHead?.(302, { Location: redirectUrl });
-      res.end?.();
-    }
+    redirectOk();
   } catch (err) {
     console.error("[confirm-email]", err);
-    const baseUrl = getBaseUrl();
-    const redirectUrl = `${baseUrl}/profile/confirmed?error=1`;
-    if (typeof res.redirect === "function") {
-      res.redirect(302, redirectUrl);
-    } else {
-      res.writeHead?.(302, { Location: redirectUrl });
-      res.end?.();
-    }
+    redirectError();
   }
 }
