@@ -4,7 +4,7 @@
 import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebase";
 
-export type SystemTemplateId = "welcome" | "profile_updated";
+export type SystemTemplateId = "welcome" | "profile_updated" | "confirm_email";
 
 export interface SystemEmailTemplate {
   name: string;

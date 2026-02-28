@@ -1,5 +1,5 @@
 /**
- * Modal to edit a system email template (welcome, profile_updated).
+ * Modal to edit a system email template (welcome, profile_updated, confirm_email).
  * Layout matches EmailComposeModal: Preview beside label, Back in preview, footer with Cancel + Save changes to template.
  * Shows disclaimer before saving: "You are permanently changing the standard mail sent out for [purpose]."
  */
@@ -16,6 +16,7 @@ import {
 import {
   defaultWelcomeContentHtml,
   defaultProfileUpdatedContentHtml,
+  defaultConfirmEmailContentHtml,
 } from "@/lib/email-templates";
 
 const TEMPLATE_META: Record<
@@ -25,30 +26,37 @@ const TEMPLATE_META: Record<
   welcome: {
     name: "Welcome email",
     purpose: "welcoming new members when they sign up",
-    placeholders: "{{full_name}}, {{email}}",
+    placeholders: "{{full_name}}, {{email}}, {{unsubscribe_url}}, {{deactivate_profile_url}}",
   },
   profile_updated: {
     name: "Profile updated email",
     purpose: "notifying members when their profile is updated (with “Not me” link)",
-    placeholders: "{{full_name}}, {{email}}, {{not_me_url}}",
+    placeholders: "{{full_name}}, {{email}}, {{not_me_url}}, {{unsubscribe_url}}, {{deactivate_profile_url}}",
+  },
+  confirm_email: {
+    name: "Confirm email",
+    purpose: "asking new members to confirm their email address",
+    placeholders: "{{full_name}}, {{email}}, {{confirm_email_url}}, {{unsubscribe_url}}, {{deactivate_profile_url}}",
   },
 };
 
 export interface SystemTemplateEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** "welcome" or "profile_updated" or "profile-updated" (dropdown value) */
-  templateId: SystemTemplateId | "profile-updated";
+  /** "welcome" | "profile_updated" | "confirm_email" or "profile-updated" | "confirm-email" (dropdown value) */
+  templateId: SystemTemplateId | "profile-updated" | "confirm-email";
   onSaved?: () => void;
 }
 
 /** Normalize dropdown value to Firestore/system id. */
-function normalizeTemplateId(id: SystemTemplateId | "profile-updated"): SystemTemplateId {
-  return id === "profile-updated" ? "profile_updated" : id;
+function normalizeTemplateId(id: SystemTemplateId | "profile-updated" | "confirm-email"): SystemTemplateId {
+  if (id === "profile-updated") return "profile_updated";
+  if (id === "confirm-email") return "confirm_email";
+  return id;
 }
 
-const templatePreviewSlug = (id: SystemTemplateId) =>
-  id === "profile_updated" ? "profile-updated" : id;
+const templatePreviewSlug = (id: SystemTemplateId): string =>
+  id === "profile_updated" ? "profile-updated" : id === "confirm_email" ? "confirm-email" : id;
 
 export function SystemTemplateEditModal({
   isOpen,
@@ -74,20 +82,18 @@ export function SystemTemplateEditModal({
     setShowSaveConfirm(false);
     setShowPreview(false);
     setLoading(true);
+    const defaultContent =
+      normalizedId === "welcome"
+        ? defaultWelcomeContentHtml
+        : normalizedId === "profile_updated"
+          ? defaultProfileUpdatedContentHtml
+          : defaultConfirmEmailContentHtml;
     getSystemTemplate(normalizedId)
       .then((t) => {
-        const def =
-          normalizedId === "welcome"
-            ? defaultWelcomeContentHtml
-            : defaultProfileUpdatedContentHtml;
-        setContentHtml(t?.content_html?.trim() || def);
+        setContentHtml(t?.content_html?.trim() || defaultContent);
       })
       .catch(() => {
-        const def =
-          normalizedId === "welcome"
-            ? defaultWelcomeContentHtml
-            : defaultProfileUpdatedContentHtml;
-        setContentHtml(def);
+        setContentHtml(defaultContent);
       })
       .finally(() => setLoading(false));
   }, [isOpen, normalizedId]);

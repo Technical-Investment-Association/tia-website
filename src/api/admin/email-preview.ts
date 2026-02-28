@@ -1,5 +1,5 @@
 /**
- * GET /api/admin/email-preview?template=welcome|profile-updated|campaign
+ * GET /api/admin/email-preview?template=welcome|profile-updated|confirm-email|campaign
  * Returns HTML for the given template (for admin preview). Optional: &body= for campaign body.
  */
 
@@ -8,10 +8,12 @@ import {
   sampleCampaignData,
   sampleWelcomeData,
   sampleProfileUpdatedData,
+  sampleConfirmEmailData,
 } from "../../lib/email-templates";
 import {
   getWelcomeEmailHtmlResolved,
   getProfileUpdatedEmailHtmlResolved,
+  getConfirmEmailHtmlResolved,
 } from "../../server/emailTemplatesServer";
 
 export default async function handler(req: { method?: string; query?: Record<string, string> }, res: { setHeader: (k: string, v: string) => void; status: (n: number) => { json: (o: object) => void; send: (s: string) => void; end: () => void } }): Promise<void> {
@@ -33,6 +35,9 @@ export default async function handler(req: { method?: string; query?: Record<str
     case "profile-updated":
       html = await getProfileUpdatedEmailHtmlResolved(sampleProfileUpdatedData);
       break;
+    case "confirm-email":
+      html = await getConfirmEmailHtmlResolved(sampleConfirmEmailData);
+      break;
     case "campaign":
       html = getCampaignEmailHtml({
         ...sampleCampaignData,
@@ -40,7 +45,7 @@ export default async function handler(req: { method?: string; query?: Record<str
       });
       break;
     default:
-      res.status(400).json({ error: "Missing or invalid template. Use welcome, profile-updated, or campaign." });
+      res.status(400).json({ error: "Missing or invalid template. Use welcome, profile-updated, confirm-email, or campaign." });
       return;
   }
 
