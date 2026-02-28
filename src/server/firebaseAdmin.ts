@@ -42,11 +42,21 @@ function getAuthInstance(): Auth {
 
 export const adminDb = new Proxy({} as Firestore, {
   get(_, prop) {
-    return (getDb() as unknown as Record<string, unknown>)[prop as string];
+    const target = getDb() as unknown as Record<string, unknown>;
+    const value = target[prop as string];
+    if (typeof value === "function") {
+      return value.bind(target);
+    }
+    return value;
   },
 });
 export const adminAuth = new Proxy({} as Auth, {
   get(_, prop) {
-    return (getAuthInstance() as unknown as Record<string, unknown>)[prop as string];
+    const target = getAuthInstance() as unknown as Record<string, unknown>;
+    const value = target[prop as string];
+    if (typeof value === "function") {
+      return value.bind(target);
+    }
+    return value;
   },
 });
