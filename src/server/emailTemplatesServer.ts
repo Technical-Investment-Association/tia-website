@@ -5,10 +5,13 @@ import { adminDb } from "./firebaseAdmin";
 import {
   getWelcomeEmailHtml,
   getProfileUpdatedEmailHtml,
+  getConfirmEmailHtml,
   buildWelcomeFromContent,
   buildProfileUpdatedFromContent,
+  buildConfirmEmailFromContent,
   type WelcomeEmailData,
   type ProfileUpdatedEmailData,
+  type ConfirmEmailData,
 } from "@/lib/email-templates";
 
 const COLLECTION = "email_templates";
@@ -41,4 +44,19 @@ export async function getProfileUpdatedEmailHtmlResolved(
     // fall through to built-in
   }
   return getProfileUpdatedEmailHtml(data);
+}
+
+export async function getConfirmEmailHtmlResolved(
+  data: ConfirmEmailData
+): Promise<string> {
+  try {
+    const snap = await adminDb.collection(COLLECTION).doc("confirm_email").get();
+    const content = snap.exists ? (snap.data()?.content_html as string) : null;
+    if (content?.trim()) {
+      return buildConfirmEmailFromContent(content, data);
+    }
+  } catch (_) {
+    // fall through to built-in
+  }
+  return getConfirmEmailHtml(data);
 }

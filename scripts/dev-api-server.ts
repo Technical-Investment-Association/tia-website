@@ -39,20 +39,33 @@ async function main() {
   let membershipHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
   let notMeHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
   let membershipCountHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
+  let updateProfileHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
+  let confirmEmailHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
+  let unsubscribeHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
+  let deactivateHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
   let emailPreviewHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
   let sendMailHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
   let loadError: Error | null = null;
 
   async function ensureHandlers() {
     if (loadError) throw loadError;
-    if (membershipHandler && notMeHandler && membershipCountHandler && emailPreviewHandler && sendMailHandler) return;
+    if (membershipHandler && notMeHandler && membershipCountHandler && updateProfileHandler && confirmEmailHandler && unsubscribeHandler && deactivateHandler && emailPreviewHandler && sendMailHandler) return;
     try {
       membershipHandler = (await import("../src/api/membership")).default;
       notMeHandler = (await import("../src/api/membership/not-me")).default;
       membershipCountHandler = (await import("../src/api/membership/count")).default;
+      updateProfileHandler = (await import("../src/api/membership/update-profile")).default;
+      confirmEmailHandler = (await import("../src/api/membership/confirm-email")).default;
+      unsubscribeHandler = (await import("../src/api/membership/unsubscribe")).default;
+      deactivateHandler = (await import("../src/api/membership/deactivate")).default;
       emailPreviewHandler = (await import("../src/api/admin/email-preview")).default;
       sendMailHandler = (await import("../src/api/admin/send-mail")).default;
       console.log("[dev-api-server] Handlers loaded (Firebase Admin OK).");
+      const baseUrl = process.env.PUBLIC_BASE_URL ?? "http://localhost:3000";
+      console.log("[dev-api-server] Email links base URL:", baseUrl);
+      if (baseUrl.includes("localhost")) {
+        console.log("[dev-api-server] Tip: Set PUBLIC_BASE_URL=https://tiaassociation.com in .env.local so email links work for recipients.");
+      }
     } catch (e) {
       loadError = e instanceof Error ? e : new Error(String(e));
       console.error("[dev-api-server] Failed to load API handlers:", loadError.message);
@@ -85,6 +98,10 @@ async function main() {
         res.setHeader("Content-Type", "application/json");
         res.end(JSON.stringify(obj));
       },
+      redirect: (code: number, url: string) => {
+        res.writeHead(code, { Location: url });
+        res.end();
+      },
     };
 
     const reqAugmented = {
@@ -113,6 +130,43 @@ async function main() {
       if (req.method === "GET" && pathname === "/api/membership/count") {
         await ensureHandlers();
         await membershipCountHandler!(reqAugmented, resHelpers);
+        return;
+      }
+      if ((req.method === "GET" || req.method === "POST") && pathname === "/api/membership/update-profile") {
+        await ensureHandlers();
+        if (req.method === "POST") {
+          const chunks: Buffer[] = [];
+          for await (const c of req) chunks.push(c);
+          const raw = Buffer.concat(chunks).toString("utf8");
+          reqAugmented.body = raw ? JSON.parse(raw) : {};
+        }
+        await updateProfileHandler!(reqAugmented, resHelpers);
+        return;
+      }
+      if (req.method === "GET" && pathname === "/api/membership/confirm-email") {
+        await ensureHandlers();
+        await confirmEmailHandler!(reqAugmented, resHelpers);
+        return;
+      }
+      if (req.method === "GET" && pathname === "/api/membership/unsubscribe") {
+        await ensureHandlers();
+        await unsubscribeHandler!(reqAugmented, resHelpers);
+        return;
+      }
+      if ((req.method === "GET" || req.method === "POST") && pathname === "/api/membership/deactivate") {
+        await ensureHandlers();
+        if (req.method === "POST") {
+          const chunks: Buffer[] = [];
+          for await (const c of req) chunks.push(c);
+          const raw = Buffer.concat(chunks).toString("utf8");
+          const contentType = (req.headers["content-type"] as string) || "";
+          if (contentType.includes("application/x-www-form-urlencoded")) {
+            reqAugmented.body = raw;
+          } else {
+            reqAugmented.body = raw ? JSON.parse(raw) : {};
+          }
+        }
+        await deactivateHandler!(reqAugmented, resHelpers);
         return;
       }
       if (req.method === "GET" && pathname.startsWith("/api/admin/email-preview")) {

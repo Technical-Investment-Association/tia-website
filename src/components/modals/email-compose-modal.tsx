@@ -5,6 +5,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +24,7 @@ const AUDIENCES = [
   { value: "all_members", label: "All members (member_signups)" },
   { value: "newsletter_consent", label: "Members with newsletter consent" },
   { value: "newsletter_signups", label: "Newsletter signups only" },
+  { value: "event_registrants", label: "Event registrants (choose event below)" },
 ] as const;
 
 const defaultBody =
@@ -48,6 +51,9 @@ export function EmailComposeModal({
   const isNew = email === null;
 
   const [audience, setAudience] = useState(email?.audience ?? "all_members");
+  const [eventId, setEventId] = useState("");
+  const [events, setEvents] = useState<Array<{ id: string; title: string }>>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
   const [subject, setSubject] = useState(email?.subject ?? "");
   const [html, setHtml] = useState(email?.html ?? defaultBody);
   const [showPreview, setShowPreview] = useState(false);
@@ -55,7 +61,7 @@ export function EmailComposeModal({
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sendResult, setSendResult] = useState<{ sent: number; total?: number } | null>(null);
+  const [sendResult, setSendResult] = useState<{ sent: number; failed?: number; total?: number } | null>(null);
   const [showSendConfirm, setShowSendConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -65,6 +71,7 @@ export function EmailComposeModal({
     setAudience(email?.audience ?? "all_members");
     setSubject(email?.subject ?? "");
     setHtml(email?.html ?? defaultBody);
+    setEventId("");
     setShowPreview(false);
     setShowSendConfirm(false);
     setShowDeleteConfirm(false);
@@ -72,6 +79,29 @@ export function EmailComposeModal({
     setError(null);
     setSendResult(null);
   }, [isOpen, email]);
+
+  useEffect(() => {
+    if (!isOpen || audience !== "event_registrants") return;
+    setEventsLoading(true);
+    const q = query(
+      collection(db, "events"),
+      where("published", "==", true),
+      orderBy("starts_at", "asc")
+    );
+    getDocs(q)
+      .then((snap) => {
+        const list = snap.docs.map((d) => {
+          const data = d.data();
+          const startsAt = data.starts_at;
+          const ms = startsAt?.toMillis?.() ?? startsAt?.seconds != null ? startsAt.seconds * 1000 : 0;
+          return { id: d.id, title: (data.title as string) || d.id, ms };
+        });
+        list.sort((a, b) => b.ms - a.ms);
+        setEvents(list.map(({ id, title }) => ({ id, title })));
+      })
+      .catch(() => setEvents([]))
+      .finally(() => setEventsLoading(false));
+  }, [isOpen, audience]);
 
   const previewUrl = `/api/admin/email-preview?template=campaign&body=${encodeURIComponent(html)}`;
 
@@ -113,30 +143,40 @@ export function EmailComposeModal({
       setError("Subject and body are required.");
       return;
     }
+    if (audience === "event_registrants" && !eventId.trim()) {
+      setError("Please select an event when sending to event registrants.");
+      return;
+    }
     setError(null);
     setSendResult(null);
     setSending(true);
     setShowSendConfirm(false);
     try {
       const token = await user.getIdToken();
+      const body: Record<string, string> = {
+        audience,
+        subject: subject.trim(),
+        html: html.trim(),
+      };
+      if (audience === "event_registrants") body.event_id = eventId.trim();
       const res = await fetch("/api/admin/send-mail", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          audience,
-          subject: subject.trim(),
-          html: html.trim(),
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(data.error || res.statusText || "Failed to send");
         return;
       }
-      setSendResult({ sent: data.sent ?? 0, total: data.total });
+      setSendResult({
+        sent: data.sent ?? 0,
+        failed: data.failed,
+        total: data.total,
+      });
       if (!isNew && email) {
         await markAsSent(email.id, user.email ?? user.uid);
       } else if (isNew) {
@@ -292,6 +332,27 @@ export function EmailComposeModal({
                   />
                 )}
               </div>
+              {audience === "event_registrants" && !isViewOnly && (
+                <div className="space-y-2">
+                  <Label className="text-[hsl(var(--section-light-foreground))]">Event</Label>
+                  <select
+                    value={eventId}
+                    onChange={(e) => setEventId(e.target.value)}
+                    className="w-full rounded-lg border-0 bg-gray-100/80 px-3 py-2 text-sm text-[hsl(var(--section-light-foreground))] outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  >
+                    <option value="">Select event…</option>
+                    {eventsLoading ? (
+                      <option disabled>Loading events…</option>
+                    ) : (
+                      events.map((ev) => (
+                        <option key={ev.id} value={ev.id}>
+                          {ev.title}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label className="text-[hsl(var(--section-light-foreground))]">Subject</Label>
                 <Input
@@ -332,7 +393,11 @@ export function EmailComposeModal({
               )}
               {sendResult != null && (
                 <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-                  Sent to {sendResult.sent} recipient(s){sendResult.total != null ? ` (${sendResult.total} total)` : ""}.
+                  Sent to {sendResult.sent} recipient(s)
+                  {sendResult.total != null ? ` (${sendResult.total} total)` : ""}
+                  {sendResult.failed != null && sendResult.failed > 0
+                    ? `. ${sendResult.failed} failed to send.`
+                    : ""}
                 </div>
               )}
             </div>

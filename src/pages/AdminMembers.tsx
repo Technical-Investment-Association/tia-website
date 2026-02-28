@@ -65,6 +65,7 @@ export default function AdminMembers() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<MemberSignupDoc | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ type: "member" | "newsletter"; id: string } | null>(null);
+  const [newsletterToggleTarget, setNewsletterToggleTarget] = useState<MemberSignupDoc | null>(null);
 
   const loadData = async () => {
     try {
@@ -86,6 +87,7 @@ export default function AdminMembers() {
           engagement_level: (data.engagement_level as string) ?? "",
           motivation: (data.motivation as string | null) ?? null,
           newsletter_consent: (data.newsletter_consent as boolean) ?? false,
+          email_confirmed: (data.email_confirmed as boolean) ?? false,
           created_at: (data.created_at as Timestamp) ?? null,
         };
       });
@@ -141,7 +143,13 @@ export default function AdminMembers() {
       await loadData();
     } catch (err) {
       console.error(err);
+    } finally {
+      setNewsletterToggleTarget(null);
     }
+  };
+
+  const openNewsletterConfirm = (member: MemberSignupDoc) => {
+    setNewsletterToggleTarget(member);
   };
 
   const handleDeleteConfirm = async () => {
@@ -241,6 +249,7 @@ export default function AdminMembers() {
                               <th className="px-6 py-3">Email</th>
                               <th className="px-6 py-3">University</th>
                               <th className="px-6 py-3">Engagement</th>
+                              <th className="px-6 py-3">Email confirmed</th>
                               <th className="px-6 py-3">Newsletter</th>
                               <th className="px-6 py-3">Created</th>
                               <th className="px-6 py-3 text-right">Actions</th>
@@ -264,11 +273,14 @@ export default function AdminMembers() {
                                 <td className="px-6 py-3 text-[hsl(var(--section-light-foreground))]/80">
                                   {m.engagement_level || "—"}
                                 </td>
+                                <td className="px-6 py-3 text-[hsl(var(--section-light-foreground))]/80">
+                                  {m.email_confirmed ? "Yes" : "No"}
+                                </td>
                                 <td className="px-6 py-3">
                                   <label className="flex cursor-pointer items-center gap-2">
                                     <Checkbox
                                       checked={m.newsletter_consent}
-                                      onCheckedChange={() => handleNewsletterToggle(m)}
+                                      onCheckedChange={() => openNewsletterConfirm(m)}
                                     />
                                     <span className="text-sm text-[hsl(var(--section-light-foreground))]/80">
                                       {m.newsletter_consent ? "Yes" : "No"}
@@ -398,6 +410,34 @@ export default function AdminMembers() {
               className="bg-red-600 hover:bg-red-700"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!newsletterToggleTarget}
+        onOpenChange={(open) => !open && setNewsletterToggleTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {newsletterToggleTarget?.newsletter_consent
+                ? "Remove from newsletter list?"
+                : "Add to newsletter list?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {newsletterToggleTarget?.newsletter_consent
+                ? `Remove ${newsletterToggleTarget.full_name || newsletterToggleTarget.email} from the newsletter list? They will no longer receive monthly TIA newsletters.`
+                : `Add ${newsletterToggleTarget?.full_name || newsletterToggleTarget?.email} to the newsletter list? They will receive monthly TIA newsletters.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-[hsl(var(--divider))]">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => newsletterToggleTarget && handleNewsletterToggle(newsletterToggleTarget)}
+            >
+              {newsletterToggleTarget?.newsletter_consent ? "Remove" : "Add"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -20,6 +20,7 @@ import { fetchDrafts, fetchRecentlySent } from "@/services/admin-emails";
 const EDIT_TEMPLATE_OPTIONS = [
   { value: "welcome", label: "Welcome email" },
   { value: "profile-updated", label: "Profile updated email" },
+  { value: "confirm-email", label: "Confirm email" },
 ] as const;
 
 type TabId = "templates" | "drafts" | "recently-sent";
@@ -33,7 +34,7 @@ export default function AdminMail() {
   const [loadingSent, setLoadingSent] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalEmail, setModalEmail] = useState<AdminEmail | null>(null);
-  const [systemTemplateEditId, setSystemTemplateEditId] = useState<"welcome" | "profile_updated" | null>(null);
+  const [systemTemplateEditId, setSystemTemplateEditId] = useState<"welcome" | "profile-updated" | "confirm-email" | null>(null);
   const [editTemplate, setEditTemplate] = useState<string>("welcome");
   const [previewKey, setPreviewKey] = useState(0);
 
@@ -175,7 +176,7 @@ export default function AdminMail() {
                         />
                         <button
                           type="button"
-                          onClick={() => setSystemTemplateEditId(editTemplate as "welcome" | "profile_updated")}
+                          onClick={() => setSystemTemplateEditId(editTemplate as "welcome" | "profile-updated" | "confirm-email")}
                           className="text-sm text-gray-900 underline decoration-gray-400 underline-offset-2 hover:decoration-gray-900"
                         >
                           Edit template

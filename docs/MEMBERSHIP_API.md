@@ -80,9 +80,11 @@ If prompted, log in with `vercel login` (device flow). Then open the URL Vercel 
     - `FIREBASE_CLIENT_EMAIL`  
     - `FIREBASE_PRIVATE_KEY` (full key; if you paste from Firebase Console, keep newlines or use `\n` in one line and the code will replace `\\n`)
 
+  - If you see **500 / "This Serverless Function has crashed"** when opening confirm-email or other API links: check that all three Firebase vars are set in Vercel for the correct environment (Production/Preview). The private key must be the full PEM including `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----`; in Vercel you can paste it as one line with `\n` for newlines.
+
   - **Optional**  
     - `RESEND_API_KEY` – If set, the API sends welcome and “profile updated” emails via Resend.  
-    - `PUBLIC_BASE_URL` – Full site URL (e.g. `https://yoursite.com`) for “Not me” links in emails. If unset, the code falls back to `http://localhost:3000`.
+    - `PUBLIC_BASE_URL` – Full site URL (e.g. `https://tiaassociation.com`) for email links (confirm, “Not me”, unsubscribe, deactivate). If unset, the code falls back to `http://localhost:3000`.
 
 - **Rewrites**  
   Your `vercel.json` currently rewrites all routes to `/`. Vercel runs **API routes before rewrites**, so `/api/membership` and `/api/membership/not-me` are still served by the serverless functions. No change to `vercel.json` is required for the API to work.

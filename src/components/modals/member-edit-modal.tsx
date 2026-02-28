@@ -28,6 +28,7 @@ export type MemberSignupDoc = {
   engagement_level: string;
   motivation: string | null;
   newsletter_consent: boolean;
+  email_confirmed?: boolean;
   created_at?: Timestamp | null;
 };
 
@@ -135,6 +136,10 @@ export function MemberEditModal({
               className="border-[hsl(var(--divider))] bg-muted/50"
             />
             <p className="text-xs text-[hsl(var(--section-light-foreground))]/60">Document ID; cannot be changed.</p>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-[hsl(var(--section-light-foreground))]/70">
+            <span>Email confirmed:</span>
+            <span>{member?.email_confirmed ? "Yes" : "No"}</span>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

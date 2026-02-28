@@ -47,6 +47,11 @@ const Partnerships = lazy(() => import("./pages/Partnerships"));
 const Research = lazy(() => import("./pages/Research"));
 const Education = lazy(() => import("./pages/Education"));
 const Join = lazy(() => import("./pages/Join"));
+const ProfileUpdate = lazy(() => import("./pages/ProfileUpdate"));
+const ProfileConfirmed = lazy(() => import("./pages/ProfileConfirmed"));
+const ProfileDeactivate = lazy(() => import("./pages/ProfileDeactivate"));
+const ProfileDeactivated = lazy(() => import("./pages/ProfileDeactivated"));
+const NewsletterUnsubscribed = lazy(() => import("./pages/NewsletterUnsubscribed"));
 const Handbook = lazy(() => import("./pages/Handbook"));
 
 // Admin pages - only loaded for admin users
@@ -111,6 +116,11 @@ const App = () => (
             <Route path="/research" element={<Research />} />
             <Route path="/education" element={<Education />} />
             <Route path="/join" element={<Join />} />
+            <Route path="/profile/update" element={<ProfileUpdate />} />
+            <Route path="/profile/confirmed" element={<ProfileConfirmed />} />
+            <Route path="/profile/deactivate" element={<ProfileDeactivate />} />
+            <Route path="/profile/deactivated" element={<ProfileDeactivated />} />
+            <Route path="/newsletter/unsubscribed" element={<NewsletterUnsubscribed />} />
             <Route path="/handbook" element={<Handbook />} />
             <Route path="/handbook/*" element={<Handbook />} />
 

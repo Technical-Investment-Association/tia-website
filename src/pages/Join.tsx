@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AlertCircle, CheckCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Section } from "@/components/layout/Section";
 import { cn } from "@/lib/utils";
 
@@ -79,19 +79,8 @@ export default function Join() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [updatePrompt, setUpdatePrompt] = useState(false);
-  const [pendingPayload, setPendingPayload] = useState<{
-    full_name: string;
-    email: string;
-    university: string;
-    study_field: string;
-    study_level: "bachelor" | "master" | "other" | "";
-    grad_year: number | null;
-    interests: string[];
-    engagement_level: EngagementLevel;
-    motivation: string | null;
-    newsletter_consent: boolean;
-  } | null>(null);
+  const [existingEmailSent, setExistingEmailSent] = useState(false);
+  const [existingEmail, setExistingEmail] = useState<string | null>(null);
 
   const toggleArrayValue = (key: "interests", value: string) => {
     setFormData((prev) => {
@@ -105,18 +94,18 @@ export default function Join() {
   };
 
   async function callMembershipApi(body: {
-    mode: "check" | "create_or_update";
+    mode: "check" | "create_or_update" | "send_update_link";
     data: {
-      full_name: string;
+      full_name?: string;
       email: string;
-      university: string;
-      study_field: string;
-      study_level: "bachelor" | "master" | "other" | "";
-      grad_year: number | null;
-      interests: string[];
-      engagement_level: EngagementLevel;
-      motivation: string | null;
-      newsletter_consent: boolean;
+      university?: string;
+      study_field?: string;
+      study_level?: "bachelor" | "master" | "other" | "";
+      grad_year?: number | null;
+      interests?: string[];
+      engagement_level?: EngagementLevel;
+      motivation?: string | null;
+      newsletter_consent?: boolean;
     };
   }) {
     const res = await fetch("/api/membership", {
@@ -130,6 +119,11 @@ export default function Join() {
     }
     return res.json();
   }
+
+  const handleCloseExistingEmailModal = () => {
+    setExistingEmailSent(false);
+    setExistingEmail(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,8 +177,21 @@ export default function Join() {
         return;
       }
       if (result.status === "exists") {
-        setPendingPayload(payload.data);
-        setUpdatePrompt(true);
+        setSubmitting(true);
+        try {
+          const sendResult = await callMembershipApi({
+            mode: "send_update_link",
+            data: { email: payload.data.email },
+          });
+          if (sendResult.status === "email_sent") {
+            setExistingEmail(payload.data.email);
+            setExistingEmailSent(true);
+          } else {
+            setError("Could not send the email. Please try again later.");
+          }
+        } catch {
+          setError("Could not send the email. Please try again later.");
+        }
         setSubmitting(false);
         return;
       }
@@ -216,34 +223,6 @@ export default function Join() {
     }
   };
 
-  const handleConfirmUpdate = async () => {
-    if (!pendingPayload) return;
-    try {
-      setSubmitting(true);
-      const result = await callMembershipApi({
-        mode: "create_or_update",
-        data: pendingPayload,
-      });
-      if (result.status === "updated" || result.status === "created") {
-        setSubmitted(true);
-      } else if (result.status === "rate_limited") {
-        setError(
-          "We have received several updates from this email recently. Please try again later."
-        );
-      } else {
-        setError("Unexpected response from server.");
-      }
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Failed to update membership."
-      );
-    } finally {
-      setSubmitting(false);
-      setUpdatePrompt(false);
-      setPendingPayload(null);
-    }
-  };
-
   if (submitted) {
     return (
       <div className="min-h-screen bg-background">
@@ -258,7 +237,6 @@ export default function Join() {
             <div className="grid-inner py-16 md:py-20">
               <div className="col-span-12 md:col-span-8 md:col-start-3 lg:col-span-6 lg:col-start-4">
                 <div className="py-12 text-center">
-                  <CheckCircle className="mx-auto mb-6 h-16 w-16 text-green-600" />
                   <h2 className="mb-4 text-3xl font-semibold text-[hsl(var(--section-light-foreground))]">
                     Membership registered
                   </h2>
@@ -557,27 +535,25 @@ export default function Join() {
             </div>
           </div>
         </Section>
-        {updatePrompt && pendingPayload && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        {existingEmailSent && existingEmail && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
             <div className="w-full max-w-md rounded-lg border border-[hsl(var(--divider))] bg-white p-6 shadow-lg">
               <h3 className="mb-3 text-lg font-semibold text-[hsl(var(--section-light-foreground))]">
-                Update existing membership?
+                This email is already in our database
               </h3>
               <p className="mb-4 text-sm text-[hsl(var(--section-light-foreground))]/80">
-                We have already registered a membership with this email address.
-                If you continue, we will update your profile with the information you have just entered.
+                We have sent an email to <strong>{existingEmail}</strong> with a link to update your profile or confirm it&apos;s you. Please check your inbox and use that link to update your details.
               </p>
-              <div className="flex justify-end gap-3">
+              <p className="mb-6 text-sm text-[hsl(var(--section-light-foreground))]/70">
+                If you don&apos;t see the email, check your spam folder.
+              </p>
+              <div className="flex justify-end">
                 <Button
-                  variant="outline"
                   type="button"
-                  className="border-[hsl(var(--divider))]"
-                  onClick={() => { setUpdatePrompt(false); setPendingPayload(null); }}
+                  className="border-[hsl(var(--divider))] text-[hsl(var(--section-light-foreground))]"
+                  onClick={handleCloseExistingEmailModal}
                 >
-                  Cancel
-                </Button>
-                <Button type="button" onClick={handleConfirmUpdate}>
-                  Update my profile
+                  OK
                 </Button>
               </div>
             </div>

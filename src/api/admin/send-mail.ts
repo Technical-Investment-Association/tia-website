@@ -1,24 +1,21 @@
 /**
  * POST /api/admin/send-mail
  * Admin-only: send an email to an audience (all members, newsletter consent, or newsletter signups).
+ * Uses throttled bulk sender to stay under Resend rate limits.
  * Body: { audience, subject, html }. Header: Authorization: Bearer <Firebase ID token>.
  */
 
-import { Resend } from "resend";
 import { adminDb, adminAuth } from "../../server/firebaseAdmin";
 import { getCampaignEmailHtml } from "../../lib/email-templates";
-
-const resend = new Resend(process.env.RESEND_API_KEY || "");
-const DEFAULT_FROM = "Technical Investment Association <membership@tiaassociation.com>";
+import { sendBulkEmails } from "../../server/emailSender";
 
 function getFrom(): string {
-  return process.env.RESEND_FROM_EMAIL || DEFAULT_FROM;
+  return process.env.RESEND_FROM_EMAIL || "Technical Investment Association <membership@tiaassociation.com>";
 }
 
-type Audience = "all_members" | "newsletter_consent" | "newsletter_signups";
+type Audience = "all_members" | "newsletter_consent" | "newsletter_signups" | "event_registrants";
 
-async function getRecipientEmails(audience: Audience): Promise<string[]> {
-  const from = getFrom();
+async function getRecipientEmails(audience: Audience, eventId?: string): Promise<string[]> {
   if (audience === "newsletter_signups") {
     const snap = await adminDb.collection("newsletter_signups").get();
     const emails = snap.docs
@@ -30,11 +27,35 @@ async function getRecipientEmails(audience: Audience): Promise<string[]> {
   const emails = membersSnap.docs
     .map((d) => {
       const data = d.data();
-      const email = (data.email as string) || d.id;
+      if (data.deactivated_at != null) return null; // GDPR: do not email deactivated profiles
       if (audience === "newsletter_consent" && !(data.newsletter_consent === true)) return null;
+      const email = (data.email as string) || d.id;
       return email && email.includes("@") ? email : null;
     })
     .filter((e): e is string => e != null);
+  return [...new Set(emails)];
+}
+
+async function getEventRegistrantEmails(eventId: string): Promise<string[]> {
+  const snap = await adminDb.collection("event_registrations").where("event_id", "==", eventId).get();
+  const emails: string[] = [];
+  snap.docs.forEach((d) => {
+    const data = d.data();
+    if (data.user_email && typeof data.user_email === "string" && data.user_email.includes("@")) {
+      emails.push((data.user_email as string).trim().toLowerCase());
+    }
+    if (data.team_lead_email && typeof data.team_lead_email === "string" && data.team_lead_email.includes("@")) {
+      emails.push((data.team_lead_email as string).trim().toLowerCase());
+    }
+    const members = data.team_members as Array<{ email?: string }> | undefined;
+    if (Array.isArray(members)) {
+      members.forEach((m) => {
+        if (m?.email && typeof m.email === "string" && m.email.includes("@")) {
+          emails.push((m.email as string).trim().toLowerCase());
+        }
+      });
+    }
+  });
   return [...new Set(emails)];
 }
 
@@ -76,16 +97,22 @@ export default async function handler(
   const audience = req.body?.audience as Audience | undefined;
   const subject = req.body?.subject;
   const htmlBody = req.body?.html;
+  const eventId = typeof req.body?.event_id === "string" ? req.body.event_id.trim() : undefined;
 
   if (!audience || !subject || !htmlBody) {
     res.status(400).json({
       error: "Missing audience, subject, or html",
-      expected: { audience: "all_members | newsletter_consent | newsletter_signups", subject: "string", html: "string" },
+      expected: { audience: "all_members | newsletter_consent | newsletter_signups | event_registrants", subject: "string", html: "string", event_id: "required when audience is event_registrants" },
     });
     return;
   }
 
-  if (!["all_members", "newsletter_consent", "newsletter_signups"].includes(audience)) {
+  if (audience === "event_registrants" && !eventId) {
+    res.status(400).json({ error: "event_id is required when audience is event_registrants" });
+    return;
+  }
+
+  if (!["all_members", "newsletter_consent", "newsletter_signups", "event_registrants"].includes(audience)) {
     res.status(400).json({ error: "Invalid audience" });
     return;
   }
@@ -96,28 +123,30 @@ export default async function handler(
   }
 
   try {
-    const emails = await getRecipientEmails(audience);
+    const emails = audience === "event_registrants"
+      ? await getEventRegistrantEmails(eventId!)
+      : await getRecipientEmails(audience);
     if (emails.length === 0) {
-      res.status(200).json({ sent: 0, message: "No recipients for this audience" });
+      res.status(200).json({ sent: 0, failed: 0, total: 0, message: "No recipients for this audience" });
       return;
     }
 
     const from = getFrom();
-    const BATCH_SIZE = 100;
-    let sent = 0;
-    for (let i = 0; i < emails.length; i += BATCH_SIZE) {
-      const batch = emails.slice(i, i + BATCH_SIZE);
-      const payload = batch.map((to) => ({
-        from,
-        to: [to],
-        subject,
-        html: getCampaignEmailHtml({ subject, body_html: htmlBody }),
-      }));
-      await resend.batch.send(payload);
-      sent += batch.length;
-    }
+    const html = getCampaignEmailHtml({ subject, body_html: htmlBody });
+    const bulkItems = emails.map((to) => ({ to, subject, html }));
+    const result = await sendBulkEmails({
+      from,
+      emails: bulkItems,
+      batchSize: 50,
+      delayBetweenBatchesMs: 600,
+    });
 
-    res.status(200).json({ sent, total: emails.length });
+    res.status(200).json({
+      sent: result.sent,
+      failed: result.failed,
+      total: result.total,
+      errors: result.errors.length > 0 ? result.errors.slice(0, 20) : undefined,
+    });
   } catch (err) {
     console.error("admin send-mail error", err);
     res.status(500).json({

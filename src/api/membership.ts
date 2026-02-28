@@ -6,7 +6,9 @@ import { adminDb } from "../server/firebaseAdmin";
 import {
   getWelcomeEmailHtmlResolved,
   getProfileUpdatedEmailHtmlResolved,
+  getConfirmEmailHtmlResolved,
 } from "../server/emailTemplatesServer";
+import { getUpdateProfileLinkEmailHtml } from "@/lib/email-templates";
 
 // Resend is optional: use placeholder when no key so the server can start (emails only sent when RESEND_API_KEY is set)
 const resend = new Resend(process.env.RESEND_API_KEY || "re_local_dev_no_send");
@@ -14,6 +16,21 @@ const resend = new Resend(process.env.RESEND_API_KEY || "re_local_dev_no_send");
 const DEFAULT_FROM = "Technical Investment Association <membership@tiaassociation.com>";
 function getFromAddress(): string {
   return process.env.RESEND_FROM_EMAIL || DEFAULT_FROM;
+}
+
+/** Base URL for links in emails (confirm, unsubscribe, deactivate, update profile).
+ * Must be your public site URL (e.g. https://tiaassociation.com) so recipients can open links.
+ * localhost is only used when unset (e.g. local dev); in production set PUBLIC_BASE_URL to your real domain. */
+function getBaseUrl(): string {
+  let base = process.env.PUBLIC_BASE_URL;
+  if (!base && process.env.VERCEL) {
+    base = "https://tiaassociation.com";
+  }
+  base = (base ?? "http://localhost:3000").replace(/\/$/, "");
+  if (!/^https?:\/\//i.test(base)) {
+    base = `http://${base}`;
+  }
+  return base;
 }
 
 // Hash IP so we don't store raw addresses (privacy-friendly)
@@ -40,6 +57,32 @@ function isRateLimited(
   if (signupCount >= 3 && diffMs < oneDay) return true;
 
   return false;
+}
+
+/** Create one-time tokens for unsubscribe and deactivate; return URLs for use in email templates (GDPR). */
+async function createUnsubscribeAndDeactivateUrls(email: string): Promise<{
+  unsubscribeUrl: string;
+  deactivateProfileUrl: string;
+}> {
+  const baseUrl = getBaseUrl();
+  const unsubToken = crypto.randomBytes(32).toString("hex");
+  const deactToken = crypto.randomBytes(32).toString("hex");
+  await Promise.all([
+    adminDb.collection("membership_unsubscribe_tokens").doc(unsubToken).set({
+      email,
+      created_at: FieldValue.serverTimestamp(),
+      used: false,
+    }),
+    adminDb.collection("membership_deactivate_tokens").doc(deactToken).set({
+      email,
+      created_at: FieldValue.serverTimestamp(),
+      used: false,
+    }),
+  ]);
+  return {
+    unsubscribeUrl: `${baseUrl}/api/membership/unsubscribe?token=${unsubToken}`,
+    deactivateProfileUrl: `${baseUrl}/profile/deactivate?token=${deactToken}`,
+  };
 }
 
 export default async function handler(req: any, res: any) {
@@ -94,6 +137,41 @@ export default async function handler(req: any, res: any) {
       return;
     }
 
+    // ---------- MODE: "send_update_link" ----------
+    if (mode === "send_update_link") {
+      if (!snap.exists) {
+        res.status(400).json({ error: "No membership found for this email." });
+        return;
+      }
+      const baseUrl = getBaseUrl();
+      const token = crypto.randomBytes(32).toString("hex");
+      await adminDb.collection("membership_update_tokens").doc(token).set({
+        email,
+        created_at: FieldValue.serverTimestamp(),
+        used: false,
+      });
+      const updateProfileUrl = `${baseUrl.replace(/\/$/, "")}/profile/update?token=${token}`;
+      const { unsubscribeUrl, deactivateProfileUrl } = await createUnsubscribeAndDeactivateUrls(email);
+      if (process.env.RESEND_API_KEY) {
+        const docData = snap.data()!;
+        const html = getUpdateProfileLinkEmailHtml({
+          full_name: (docData.full_name as string) || undefined,
+          email,
+          update_profile_url: updateProfileUrl,
+          unsubscribe_url: unsubscribeUrl,
+          deactivate_profile_url: deactivateProfileUrl,
+        });
+        await resend.emails.send({
+          from: getFromAddress(),
+          to: email,
+          subject: "Update your TIA membership profile",
+          html,
+        });
+      }
+      res.json({ status: "email_sent" });
+      return;
+    }
+
     // ---------- MODE: "create_or_update" ----------
     if (mode === "create_or_update") {
       const now = FieldValue.serverTimestamp();
@@ -103,6 +181,7 @@ export default async function handler(req: any, res: any) {
         await memberRef.set({
           ...cleanData,
           email,
+          email_confirmed: false,
           created_at: now,
           updated_at: now,
           signup_count: 1,
@@ -111,17 +190,41 @@ export default async function handler(req: any, res: any) {
           last_user_agent: ua,
         });
 
-        // Welcome email
+        // Welcome email (no confirm link in body) + separate Confirm email
         if (process.env.RESEND_API_KEY) {
-          const html = await getWelcomeEmailHtmlResolved({
+          const baseUrlForConfirm = getBaseUrl();
+          const { unsubscribeUrl, deactivateProfileUrl } = await createUnsubscribeAndDeactivateUrls(email);
+          const welcomeHtml = await getWelcomeEmailHtmlResolved({
             full_name: data.full_name as string | undefined,
             email,
+            unsubscribe_url: unsubscribeUrl,
+            deactivate_profile_url: deactivateProfileUrl,
           });
           await resend.emails.send({
             from: getFromAddress(),
             to: email,
             subject: "Welcome to Technical Investment Association",
-            html,
+            html: welcomeHtml,
+          });
+          const confirmToken = crypto.randomBytes(32).toString("hex");
+          await adminDb.collection("membership_confirm_tokens").doc(confirmToken).set({
+            email,
+            created_at: FieldValue.serverTimestamp(),
+            used: false,
+          });
+          const confirmUrl = `${baseUrlForConfirm}/api/membership/confirm-email?token=${confirmToken}`;
+          const confirmHtml = await getConfirmEmailHtmlResolved({
+            full_name: data.full_name as string | undefined,
+            email,
+            confirm_email_url: confirmUrl,
+            unsubscribe_url: unsubscribeUrl,
+            deactivate_profile_url: deactivateProfileUrl,
+          });
+          await resend.emails.send({
+            from: getFromAddress(),
+            to: email,
+            subject: "Confirm your email address",
+            html: confirmHtml,
           });
         }
 
@@ -159,7 +262,7 @@ export default async function handler(req: any, res: any) {
         last_user_agent: ua,
       });
 
-      const baseUrl = process.env.PUBLIC_BASE_URL ?? "http://localhost:3000"; // fallback for dev
+      const baseUrl = getBaseUrl();
       const notMeUrl = `${baseUrl.replace(
         /\/$/,
         ""
@@ -167,12 +270,16 @@ export default async function handler(req: any, res: any) {
         email
       )}&token=${token}`;
 
+      const { unsubscribeUrl, deactivateProfileUrl } = await createUnsubscribeAndDeactivateUrls(email);
+
       // "Profile updated" email with "Not me" link
       if (process.env.RESEND_API_KEY) {
         const html = await getProfileUpdatedEmailHtmlResolved({
           full_name: data.full_name as string | undefined,
           email,
           not_me_url: notMeUrl,
+          unsubscribe_url: unsubscribeUrl,
+          deactivate_profile_url: deactivateProfileUrl,
         });
         await resend.emails.send({
           from: getFromAddress(),

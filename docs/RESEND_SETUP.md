@@ -69,8 +69,8 @@ Optional:
 # Sender shown in emails (must be from a verified domain in Resend)
 RESEND_FROM_EMAIL=Technical Investment Association <membership@tiaassociation.com>
 
-# Used for the "Not me" link in update emails (e.g. https://yoursite.com)
-PUBLIC_BASE_URL=https://your-domain.com
+# Used for links in membership emails (confirm, update profile, unsubscribe, deactivate)
+PUBLIC_BASE_URL=https://tiaassociation.com
 ```
 
 If you omit `RESEND_FROM_EMAIL`, the API uses  
@@ -83,7 +83,7 @@ That address must be on a domain you’ve verified in Resend.
 2. Add:
    - **`RESEND_API_KEY`** = your Resend API key (`re_...`).
    - **`RESEND_FROM_EMAIL`** (optional) = same format as above, from a verified domain.
-   - **`PUBLIC_BASE_URL`** (optional) = your production URL, e.g. `https://tiawebsite.vercel.app` or your custom domain.
+   - **`PUBLIC_BASE_URL`** (optional) = your production URL, e.g. `https://tiaassociation.com`.
 3. Redeploy so the new variables are used.
 
 ---
@@ -120,6 +120,6 @@ That address must be on a domain you’ve verified in Resend.
 |----------------------|----------|--------|
 | `RESEND_API_KEY`     | Yes      | Resend API key (`re_...`) so the API can send emails. |
 | `RESEND_FROM_EMAIL`  | No       | Sender address (default: `Technical Investment Association <membership@tiaassociation.com>`). Must be on a verified domain. |
-| `PUBLIC_BASE_URL`    | No       | Base URL for “Not me” links (e.g. `https://yoursite.com`). |
+| `PUBLIC_BASE_URL`    | No       | Base URL for email links (e.g. `https://tiaassociation.com`). |
 
 Add `RESEND_API_KEY` (and optionally the others) in `.env.local` and in Vercel, verify your domain in Resend, and the membership emails will be sent automatically.
