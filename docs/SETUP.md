@@ -81,9 +81,15 @@ To run the site with full functionality:
 2. **Client config** — In Project settings → General → Your apps, add a Web app if needed. Copy the config into `.env.local` as the `VITE_FIREBASE_*` variables (see above).
 3. **Service account (for API)** — In Project settings → Service accounts, generate a new private key. Use the JSON’s `project_id`, `client_email`, and `private_key` as `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` in `.env.local`.
 4. **Authentication** — Enable **Email/Password** sign-in (Build → Authentication → Sign-in method).
-5. **Firestore** — Create the database; deploy rules and indexes from this repo: run `pnpm run firebase:deploy-rules` from the project root (see **Firestore and Storage rules** below).
-6. **Storage** — Create a Storage bucket if you use image/file uploads (e.g. events, partnerships). Rules are in `firebase/storage.rules` and deploy with `pnpm run firebase:deploy-rules`.
-7. **Admin access** — Create at least one user (Authentication → Users → Add user), then in Firestore create a document:
+5. **Authorized domains (fixes Firestore “access control checks” in production)** — In **Project settings** → **General** → scroll to **Authorized domains**. Add every domain where the app runs:
+   - `tiaassociation.com`
+   - `www.tiaassociation.com`
+   - `localhost` (usually already there)
+   - For Vercel previews: `*.vercel.app` (or add each preview URL if needed).  
+   If a domain is missing, the browser will block Firestore (and sometimes Auth) with “Fetch API cannot load … due to access control checks”.
+6. **Firestore** — Create the database; deploy rules and indexes from this repo: run `pnpm run firebase:deploy-rules` from the project root (see **Firestore and Storage rules** below).
+7. **Storage** — Create a Storage bucket if you use image/file uploads (e.g. events, partnerships). Rules are in `firebase/storage.rules` and deploy with `pnpm run firebase:deploy-rules`.
+8. **Admin access** — Create at least one user (Authentication → Users → Add user), then in Firestore create a document:
    - Collection: `users`
    - Document ID: the user’s Firebase Auth **UID** (from Authentication → Users)
    - Field: `role` = `"admin"`

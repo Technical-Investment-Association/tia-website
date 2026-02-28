@@ -1,62 +1,40 @@
 // src/server/firebaseAdmin.ts
-import { initializeApp, cert, getApps, getApp, type App } from "firebase-admin/app";
-import { getFirestore, type Firestore } from "firebase-admin/firestore";
-import { getAuth, type Auth } from "firebase-admin/auth";
+import { initializeApp, cert, getApps, getApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 
-let app: App | null = null;
+/** Ensure PEM private key has newlines so Firebase cert() accepts it (Vercel often strips newlines when pasting). */
+function normalizePrivateKey(key: string): string {
+  let out = key.replace(/\\n/g, "\n").trim();
+  if (!out.includes("\n") && out.includes("-----BEGIN") && out.includes("-----END")) {
+    const match = out.match(/-----BEGIN PRIVATE KEY-----(.*?)-----END PRIVATE KEY-----/s);
+    if (match) {
+      const middle = match[1].replace(/\s/g, "");
+      out = `-----BEGIN PRIVATE KEY-----\n${middle}\n-----END PRIVATE KEY-----`;
+    }
+  }
+  return out;
+}
 
-function getAppOrInit(): App {
-  if (app) return app;
+function getAppOrInit() {
   if (getApps().length > 0) {
-    app = getApp();
-    return app;
+    return getApp();
   }
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  let privateKey = process.env.FIREBASE_PRIVATE_KEY;
-  if (privateKey) {
-    privateKey = privateKey.replace(/\\n/g, "\n");
-  }
-  if (!projectId || !clientEmail || !privateKey) {
+  const rawKey = process.env.FIREBASE_PRIVATE_KEY;
+  if (!projectId || !clientEmail || !rawKey) {
     throw new Error(
       "Missing Firebase Admin env. Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY in Vercel (or .env.local for dev)."
     );
   }
-  app = initializeApp({
+  const privateKey = normalizePrivateKey(rawKey);
+  return initializeApp({
     credential: cert({ projectId, clientEmail, privateKey }),
   });
-  return app;
 }
 
-let _db: Firestore | null = null;
-let _auth: Auth | null = null;
+const app = getAppOrInit();
 
-function getDb(): Firestore {
-  if (!_db) _db = getFirestore(getAppOrInit());
-  return _db;
-}
-function getAuthInstance(): Auth {
-  if (!_auth) _auth = getAuth(getAppOrInit());
-  return _auth;
-}
-
-export const adminDb = new Proxy({} as Firestore, {
-  get(_, prop) {
-    const target = getDb() as unknown as Record<string, unknown>;
-    const value = target[prop as string];
-    if (typeof value === "function") {
-      return value.bind(target);
-    }
-    return value;
-  },
-});
-export const adminAuth = new Proxy({} as Auth, {
-  get(_, prop) {
-    const target = getAuthInstance() as unknown as Record<string, unknown>;
-    const value = target[prop as string];
-    if (typeof value === "function") {
-      return value.bind(target);
-    }
-    return value;
-  },
-});
+export const adminDb = getFirestore(app);
+export const adminAuth = getAuth(app);
