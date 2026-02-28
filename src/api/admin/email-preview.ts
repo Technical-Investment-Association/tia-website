@@ -1,0 +1,47 @@
+/**
+ * GET /api/admin/email-preview?template=welcome|profile-updated|campaign
+ * Returns HTML for the given template (for admin preview). Optional: &body= for campaign body.
+ */
+
+import {
+  getWelcomeEmailHtml,
+  getProfileUpdatedEmailHtml,
+  getCampaignEmailHtml,
+  sampleWelcomeData,
+  sampleProfileUpdatedData,
+  sampleCampaignData,
+} from "../../lib/email-templates";
+
+export default async function handler(req: { method?: string; query?: Record<string, string> }, res: { setHeader: (k: string, v: string) => void; status: (n: number) => { json: (o: object) => void; send: (s: string) => void; end: () => void } }): Promise<void> {
+  if (req.method !== "GET") {
+    res.setHeader("Allow", "GET");
+    res.status(405).end();
+    return;
+  }
+
+  const template = (req.query?.template as string) || "";
+  const bodyParam = req.query?.body;
+  const body = (typeof bodyParam === "string" ? bodyParam : Array.isArray(bodyParam) ? bodyParam[0] : undefined) || sampleCampaignData.body_html;
+
+  let html: string;
+  switch (template) {
+    case "welcome":
+      html = getWelcomeEmailHtml(sampleWelcomeData);
+      break;
+    case "profile-updated":
+      html = getProfileUpdatedEmailHtml(sampleProfileUpdatedData);
+      break;
+    case "campaign":
+      html = getCampaignEmailHtml({
+        ...sampleCampaignData,
+        body_html: body ? decodeURIComponent(body) : sampleCampaignData.body_html,
+      });
+      break;
+    default:
+      res.status(400).json({ error: "Missing or invalid template. Use welcome, profile-updated, or campaign." });
+      return;
+  }
+
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.status(200).send(html);
+}

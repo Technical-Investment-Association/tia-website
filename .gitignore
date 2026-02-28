@@ -22,7 +22,7 @@ dist-ssr/
 # (IMPORTANT: never commit Firebase keys or secrets)
 # ------------------------------
 .env
-.env.* 
+.env.*
 !.env.example
 *.env
 .env.local
@@ -62,3 +62,4 @@ firebase-debug.log
 *.tsbuildinfo
 vite.config.ts.timestamp-*
 .env*.local
+coverage/

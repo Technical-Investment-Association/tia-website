@@ -2,8 +2,11 @@
 import { Resend } from "resend";
 import crypto from "crypto";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
-// Adjust this path if your firebaseAdmin file is in a different place:
 import { adminDb } from "../server/firebaseAdmin";
+import {
+  getWelcomeEmailHtml,
+  getProfileUpdatedEmailHtml,
+} from "../lib/email-templates";
 
 // Resend is optional: use placeholder when no key so the server can start (emails only sent when RESEND_API_KEY is set)
 const resend = new Resend(process.env.RESEND_API_KEY || "re_local_dev_no_send");
@@ -110,15 +113,15 @@ export default async function handler(req: any, res: any) {
 
         // Welcome email
         if (process.env.RESEND_API_KEY) {
+          const html = getWelcomeEmailHtml({
+            full_name: data.full_name as string | undefined,
+            email,
+          });
           await resend.emails.send({
             from: getFromAddress(),
             to: email,
             subject: "Welcome to Technical Investment Association",
-            html: `
-              <p>Hi ${data.full_name || ""},</p>
-              <p>Thank you for joining Technical Investment Association.</p>
-              <p>We look forward to seeing you at our events and keeping you updated on opportunities within investing and finance.</p>
-            `,
+            html,
           });
         }
 
@@ -166,17 +169,16 @@ export default async function handler(req: any, res: any) {
 
       // "Profile updated" email with "Not me" link
       if (process.env.RESEND_API_KEY) {
+        const html = getProfileUpdatedEmailHtml({
+          full_name: data.full_name as string | undefined,
+          email,
+          not_me_url: notMeUrl,
+        });
         await resend.emails.send({
           from: getFromAddress(),
           to: email,
           subject: "Your TIA membership profile has been updated",
-          html: `
-            <p>Hi ${data.full_name || ""},</p>
-            <p>Your membership information with Technical Investment Association has just been updated.</p>
-            <p>If this was you, no further action is required.</p>
-            <p>If this was <strong>not</strong> you, please click the link below so we can review it:</p>
-            <p><a href="${notMeUrl}">This was not me</a></p>
-          `,
+          html,
         });
       }
 

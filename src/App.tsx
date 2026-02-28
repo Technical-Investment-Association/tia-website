@@ -60,6 +60,7 @@ const AdminResources = lazy(() => import("./pages/AdminResources"));
 const AdminResearch = lazy(() => import("./pages/AdminResearch"));
 const AdminEducation = lazy(() => import("./pages/AdminEducation"));
 const AdminInsights = lazy(() => import("./pages/AdminInsights"));
+const AdminMail = lazy(() => import("./pages/AdminMail"));
 
 // ============================================================================
 // Configuration
@@ -185,6 +186,14 @@ const App = () => (
               element={
                 <RequireAdmin>
                   <AdminInsights />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/mail"
+              element={
+                <RequireAdmin>
+                  <AdminMail />
                 </RequireAdmin>
               }
             />

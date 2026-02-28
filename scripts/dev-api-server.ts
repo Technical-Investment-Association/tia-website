@@ -38,14 +38,18 @@ async function main() {
 
   let membershipHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
   let notMeHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
+  let emailPreviewHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
+  let sendMailHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
   let loadError: Error | null = null;
 
   async function ensureHandlers() {
     if (loadError) throw loadError;
-    if (membershipHandler && notMeHandler) return;
+    if (membershipHandler && notMeHandler && emailPreviewHandler && sendMailHandler) return;
     try {
       membershipHandler = (await import("../src/api/membership")).default;
       notMeHandler = (await import("../src/api/membership/not-me")).default;
+      emailPreviewHandler = (await import("../src/api/admin/email-preview")).default;
+      sendMailHandler = (await import("../src/api/admin/send-mail")).default;
       console.log("[dev-api-server] Handlers loaded (Firebase Admin OK).");
     } catch (e) {
       loadError = e instanceof Error ? e : new Error(String(e));
@@ -65,8 +69,15 @@ async function main() {
         res.statusCode = code;
         return resHelpers;
       },
+      setHeader: (name: string, value: string) => {
+        res.setHeader(name, value);
+        return resHelpers;
+      },
       send: (body: string) => {
         res.end(body);
+      },
+      end: () => {
+        res.end();
       },
       json: (obj: object) => {
         res.setHeader("Content-Type", "application/json");
@@ -95,6 +106,20 @@ async function main() {
       if (req.method === "GET" && pathname === "/api/membership/not-me") {
         await ensureHandlers();
         await notMeHandler!(reqAugmented, resHelpers);
+        return;
+      }
+      if (req.method === "GET" && pathname.startsWith("/api/admin/email-preview")) {
+        await ensureHandlers();
+        await emailPreviewHandler!(reqAugmented, resHelpers);
+        return;
+      }
+      if (req.method === "POST" && pathname === "/api/admin/send-mail") {
+        await ensureHandlers();
+        const chunks: Buffer[] = [];
+        for await (const c of req) chunks.push(c);
+        const raw = Buffer.concat(chunks).toString("utf8");
+        reqAugmented.body = raw ? JSON.parse(raw) : {};
+        await sendMailHandler!(reqAugmented, resHelpers);
         return;
       }
     } catch (e) {
