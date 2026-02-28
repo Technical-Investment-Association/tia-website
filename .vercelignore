@@ -1,0 +1,2 @@
+# Deploy only bundled API handlers (.js); source .ts are used at build time then excluded so Vercel runs the self-contained .js
+api/**/*.ts
