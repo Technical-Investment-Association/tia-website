@@ -9,6 +9,7 @@ type PartnershipLogo = {
   id: string;
   name: string;
   logo_url?: string | null;
+  website?: string | null;
   kind?: PartnershipKind | null;
 };
 
@@ -39,6 +40,7 @@ const BasePartnershipLogoGrid = ({ kind }: BaseProps) => {
           id: d.id,
           name: d.data().name,
           logo_url: d.data().logo_url,
+          website: d.data().website ?? null,
           kind: (d.data().kind as PartnershipKind | undefined) ?? null,
         }));
 
@@ -61,59 +63,76 @@ const BasePartnershipLogoGrid = ({ kind }: BaseProps) => {
     );
   }
 
-  // Few logos: center them with flex
-  if (partners.length <= 3) {
-    return (
-      <div className="mt-6 flex flex-wrap justify-center gap-x-8 gap-y-6">
-        {partners.map((p) =>
-          p.logo_url ? (
-            <div
-              key={p.id}
-              className="h-16 md:h-20 max-w-[160px] flex items-center justify-center"
-            >
-              <img
-                src={p.logo_url}
-                alt={p.name}
-                className="max-h-full max-w-full object-contain"
-              />
-            </div>
-          ) : (
-            <div
-              key={p.id}
-              className="h-16 md:h-20 max-w-[160px] flex items-center justify-center text-xs text-muted-foreground border border-dashed rounded-md px-3 text-center"
-            >
-              {p.name}
-            </div>
-          )
-        )}
-      </div>
-    );
-  }
+  const n = partners.length;
+  const fullRows = Math.floor(n / 6);
+  const lastRowSize = n % 6;
 
-  // 4+ logos: regular grid
+  const getColStart = (index: number) => {
+    const inLastRow = index >= fullRows * 6;
+    const rowSize = inLastRow ? lastRowSize : 6;
+    const pos = inLastRow ? index - fullRows * 6 : index % 6;
+    if (rowSize === 6) return 1 + pos * 2;
+    if (rowSize === 5) return 2 + pos * 2;
+    if (rowSize === 4) return 3 + pos * 2;
+    if (rowSize === 3) return 4 + pos * 2;
+    if (rowSize === 2) return 5 + pos * 2;
+    return 6; // rowSize === 1
+  };
+
+  const colStartClass: Record<number, string> = {
+    1: "md:col-start-1",
+    2: "md:col-start-2",
+    3: "md:col-start-3",
+    4: "md:col-start-4",
+    5: "md:col-start-5",
+    6: "md:col-start-6",
+    7: "md:col-start-7",
+    8: "md:col-start-8",
+    9: "md:col-start-9",
+    10: "md:col-start-10",
+    11: "md:col-start-11",
+  };
+
   return (
-    <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-8 gap-y-8 justify-items-center">
-      {partners.map((p) =>
-        p.logo_url ? (
-          <div
-            key={p.id}
-            className="h-16 md:h-20 max-w-[160px] flex items-center justify-center"
-          >
-            <img
-              src={p.logo_url}
-              alt={p.name}
-              className="max-h-full max-w-full object-contain"
-            />
-          </div>
+    <div className="mt-10 grid grid-cols-2 md:grid-cols-12 gap-x-6 gap-y-10 md:gap-x-8 justify-items-center items-center">
+      {partners.map((p, i) => {
+        const href = p.website?.trim()
+          ? /^https?:\/\//i.test(p.website)
+            ? p.website
+            : `https://${p.website}`
+          : null;
+        const content = p.logo_url ? (
+          <img
+            src={p.logo_url}
+            alt={p.name}
+            className="max-h-full max-w-full object-contain"
+          />
         ) : (
-          <div
-            key={p.id}
-            className="h-16 md:h-20 max-w-[160px] flex items-center justify-center text-xs text-muted-foreground border border-dashed rounded-md px-3 text-center"
-          >
+          <span className="text-xs text-muted-foreground text-center border border-dashed rounded-md px-3 py-2 inline-block">
             {p.name}
+          </span>
+        );
+        const wrapperClass =
+          "h-16 md:h-20 w-full max-w-[200px] flex items-center justify-center col-span-1 md:col-span-2 " +
+          (colStartClass[getColStart(i)] ?? "");
+        return (
+          <div key={p.id} className={wrapperClass}>
+            {href ? (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-full w-full flex items-center justify-center hover:opacity-80 transition-opacity"
+                title={`Visit ${p.name}`}
+              >
+                {content}
+              </a>
+            ) : (
+              content
+            )}
           </div>
-        )
-      )}
+        );
+      })}
     </div>
   );
 };

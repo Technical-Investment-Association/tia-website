@@ -199,6 +199,39 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Admin emails (drafts and sent) – admin only
+    function isValidAdminEmail(data) {
+      return data.keys().hasAll(["audience", "subject", "html", "status", "created_at", "updated_at"]) &&
+             data.audience is string &&
+             data.subject is string &&
+             data.html is string &&
+             data.status in ["draft", "sent"] &&
+             data.created_at is timestamp &&
+             data.updated_at is timestamp &&
+             (!("sent_at" in data) || data.sent_at is timestamp) &&
+             (!("sent_by" in data) || data.sent_by is string);
+    }
+    match /admin_emails/{id} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin() && isValidAdminEmail(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // System email templates (welcome, profile_updated) – admin only
+    function isValidEmailTemplate(data) {
+      return data.keys().hasAll(["name", "content_html", "updated_at", "updated_by"]) &&
+             data.name is string &&
+             data.content_html is string &&
+             data.updated_at is timestamp &&
+             data.updated_by is string &&
+             (!("description" in data) || data.description is string || data.description == null);
+    }
+    match /email_templates/{id} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin() && isValidEmailTemplate(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
     // Deny everything else
     match /{document=**} {
       allow read, write: if false;

@@ -1,29 +1,43 @@
-// src/pages/AdminMembers.tsx
-import { useEffect, useState } from "react";
+/**
+ * AdminMembers – Admin page for member signups and newsletter subscribers.
+ * - Member signups: search, edit, delete, newsletter toggle
+ * - Newsletter-only signups: list and delete
+ */
+
+import { useEffect, useState, useMemo } from "react";
 import {
   collection,
   getDocs,
   orderBy,
   query,
+  doc,
+  deleteDoc,
+  updateDoc,
   Timestamp,
 } from "firebase/firestore";
+import { Search, Pencil, Trash2, BarChart3 } from "lucide-react";
 
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import { Link } from "react-router-dom";
 import { db } from "@/lib/firebase/firebase";
+import { useAuth } from "@/contexts/AuthContext";
+import { Section } from "@/components/layout/Section";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-
-type MemberSignup = {
-  id: string;
-  name: string;
-  email: string;
-  study_place: string;
-  interests: string[];
-  involvement?: string | null;
-  newsletter_opt_in?: boolean;
-  created_at?: Timestamp | null;
-};
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { MemberEditModal, type MemberSignupDoc } from "@/components/modals/member-edit-modal";
 
 type NewsletterSignup = {
   id: string;
@@ -32,178 +46,362 @@ type NewsletterSignup = {
   created_at?: Timestamp | null;
 };
 
-const formatDateTime = (ts?: Timestamp | null) => {
-  if (!ts) return "";
-  const d = ts.toDate();
-  return d.toLocaleString("en-GB", {
+const formatDate = (ts?: Timestamp | null) => {
+  if (!ts) return "—";
+  return ts.toDate().toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
   });
 };
 
-const AdminMembers = () => {
-  const [members, setMembers] = useState<MemberSignup[]>([]);
+export default function AdminMembers() {
+  const { isAdmin } = useAuth();
+  const [members, setMembers] = useState<MemberSignupDoc[]>([]);
   const [newsletterSubs, setNewsletterSubs] = useState<NewsletterSignup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<MemberSignupDoc | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: "member" | "newsletter"; id: string } | null>(null);
+
+  const loadData = async () => {
+    try {
+      const membersRef = collection(db, "member_signups");
+      const membersQuery = query(membersRef, orderBy("created_at", "desc"));
+      const membersSnap = await getDocs(membersQuery);
+      const memberData: MemberSignupDoc[] = membersSnap.docs.map((d) => {
+        const data = d.data() as Record<string, unknown>;
+        return {
+          id: d.id,
+          full_name: (data.full_name as string) ?? "",
+          email: (data.email as string) ?? d.id,
+          university: (data.university as string) ?? "",
+          study_field: (data.study_field as string) ?? "",
+          study_level: (data.study_level as string) ?? "",
+          grad_year: (data.grad_year as number | null) ?? null,
+          interests: (data.interests as string[]) ?? [],
+          career_orientation: (data.career_orientation as string[]) ?? [],
+          engagement_level: (data.engagement_level as string) ?? "",
+          motivation: (data.motivation as string | null) ?? null,
+          newsletter_consent: (data.newsletter_consent as boolean) ?? false,
+          created_at: (data.created_at as Timestamp) ?? null,
+        };
+      });
+
+      const newsletterRef = collection(db, "newsletter_signups");
+      const newsletterQuery = query(newsletterRef, orderBy("created_at", "desc"));
+      const newsletterSnap = await getDocs(newsletterQuery);
+      const newsletterData: NewsletterSignup[] = newsletterSnap.docs.map((d) => {
+        const data = d.data() as Record<string, unknown>;
+        return {
+          id: d.id,
+          email: (data.email as string) ?? "",
+          source: (data.source as string) ?? "",
+          created_at: (data.created_at as Timestamp) ?? null,
+        };
+      });
+
+      setMembers(memberData);
+      setNewsletterSubs(newsletterData);
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load data.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const membersRef = collection(db, "member_signups");
-        const membersQuery = query(membersRef, orderBy("created_at", "desc"));
-        const membersSnap = await getDocs(membersQuery);
-        const memberData: MemberSignup[] = membersSnap.docs.map((doc) => {
-          const d = doc.data() as Record<string, unknown>;
-          return {
-            id: doc.id,
-            name: d.name as string,
-            email: d.email as string,
-            study_place: d.study_place as string,
-            interests: (d.interests ?? []) as string[],
-            involvement: (d.involvement ?? null) as string | null,
-            newsletter_opt_in: (d.newsletter_opt_in ?? false) as boolean,
-            created_at: (d.created_at ?? null) as Timestamp | null,
-          };
-        });
+    if (!isAdmin) return;
+    loadData();
+  }, [isAdmin]);
 
-        const newsletterRef = collection(db, "newsletter_signups");
-        const newsletterQuery = query(
-          newsletterRef,
-          orderBy("created_at", "desc")
-        );
-        const newsletterSnap = await getDocs(newsletterQuery);
-        const newsletterData: NewsletterSignup[] = newsletterSnap.docs.map(
-          (doc) => {
-            const d = doc.data() as Record<string, unknown>;
-            return {
-              id: doc.id,
-              email: d.email as string,
-              source: (d.source ?? "") as string,
-              created_at: (d.created_at ?? null) as Timestamp | null,
-            };
-          }
-        );
+  const filteredMembers = useMemo(() => {
+    if (!search.trim()) return members;
+    const s = search.trim().toLowerCase();
+    return members.filter(
+      (m) =>
+        m.email.toLowerCase().includes(s) ||
+        (m.full_name && m.full_name.toLowerCase().includes(s))
+    );
+  }, [members, search]);
 
-        setMembers(memberData);
-        setNewsletterSubs(newsletterData);
-      } catch (err: unknown) {
-        console.error(err);
-        setError("Failed to load member and newsletter data.");
-      } finally {
-        setLoading(false);
+  const handleEdit = (member: MemberSignupDoc) => {
+    setSelectedMember(member);
+    setEditModalOpen(true);
+  };
+
+  const handleNewsletterToggle = async (member: MemberSignupDoc) => {
+    try {
+      const ref = doc(db, "member_signups", member.id);
+      await updateDoc(ref, { newsletter_consent: !member.newsletter_consent });
+      await loadData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    try {
+      if (deleteTarget.type === "member") {
+        await deleteDoc(doc(db, "member_signups", deleteTarget.id));
+      } else {
+        await deleteDoc(doc(db, "newsletter_signups", deleteTarget.id));
       }
-    };
+      await loadData();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeleteTarget(null);
+    }
+  };
 
-    fetchData();
-  }, []);
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="grid-outer bg-white">
+          <Section>
+            <div className="grid-inner py-16">
+              <p className="text-[hsl(var(--section-light-foreground))]/70">Access denied.</p>
+            </div>
+          </Section>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <section className="pt-32 pb-20 px-4 bg-[hsl(var(--section-light))]">
-        <div className="container mx-auto max-w-6xl">
-          <Separator className="w-16 mb-8 bg-[hsl(var(--divider))]" />
-          <h1 className="text-4xl font-bold mb-3 text-[hsl(var(--section-light-foreground))]">
-            Members & Newsletter
-          </h1>
-          <p className="text-[hsl(var(--section-light-foreground))]/70 mb-8 max-w-2xl">
-            Overview of TIA member signups and newsletter subscribers. Export
-            this data to handle communication and onboarding.
-          </p>
+      <main className="grid-outer bg-white">
+        <Section>
+          <div className="grid-inner py-16 md:py-20">
+            <div className="col-span-12">
+              <h1 className="mb-2 text-3xl font-semibold text-[hsl(var(--section-light-foreground))] md:text-4xl">
+                Members & Newsletter
+              </h1>
+              <p className="mb-8 max-w-2xl text-[hsl(var(--section-light-foreground))]/70">
+                Member signups from the Join page and newsletter-only subscribers. You can edit members, toggle newsletter consent, and delete entries.
+              </p>
+              <div className="mb-6">
+                <Link
+                  to="/admin/members/analytics"
+                  className="inline-flex items-center gap-2 rounded-md border border-[hsl(var(--divider))] bg-white px-4 py-2 text-sm font-medium text-[hsl(var(--section-light-foreground))] hover:bg-[hsl(var(--section-light))]"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  View analytics
+                </Link>
+              </div>
 
-          {loading && <p>Loading…</p>}
-          {error && <p className="text-red-500">{error}</p>}
+              {loading && (
+                <p className="text-sm text-[hsl(var(--section-light-foreground))]/60">Loading…</p>
+              )}
+              {error && (
+                <p className="text-sm text-red-600">{error}</p>
+              )}
 
-          {!loading && !error && (
-            <div className="space-y-12">
-              {/* Members table */}
-              <Card className="p-6 bg-white border-border overflow-x-auto">
-                <h2 className="text-2xl font-semibold mb-4">Member signups</h2>
-                {members.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No member signups yet.
-                  </p>
-                ) : (
-                  <table className="w-full text-sm border-collapse">
-                    <thead className="border-b border-border text-left">
-                      <tr className="text-muted-foreground">
-                        <th className="py-2 pr-4">Name</th>
-                        <th className="py-2 pr-4">Email</th>
-                        <th className="py-2 pr-4">Study place</th>
-                        <th className="py-2 pr-4">Interests</th>
-                        <th className="py-2 pr-4">Involvement</th>
-                        <th className="py-2 pr-4">Newsletter</th>
-                        <th className="py-2 pr-4">Created</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {members.map((m) => (
-                        <tr key={m.id} className="border-b border-border/50">
-                          <td className="py-2 pr-4">{m.name}</td>
-                          <td className="py-2 pr-4">{m.email}</td>
-                          <td className="py-2 pr-4">{m.study_place}</td>
-                          <td className="py-2 pr-4">
-                            {m.interests && m.interests.length > 0
-                              ? m.interests.join(", ")
-                              : "-"}
-                          </td>
-                          <td className="py-2 pr-4">{m.involvement || "-"}</td>
-                          <td className="py-2 pr-4">
-                            {m.newsletter_opt_in ? "Yes" : "No"}
-                          </td>
-                          <td className="py-2 pr-4">
-                            {formatDateTime(m.created_at)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </Card>
+              {!loading && !error && (
+                <div className="space-y-12">
+                  {/* Member signups */}
+                  <Card className="overflow-hidden border-[hsl(var(--divider))] bg-white">
+                    <div className="border-b border-[hsl(var(--divider))] px-6 py-4">
+                      <h2 className="text-xl font-semibold text-[hsl(var(--section-light-foreground))]">
+                        Member signups
+                      </h2>
+                      <div className="mt-3 flex gap-2">
+                        <div className="relative flex-1 max-w-xs">
+                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[hsl(var(--section-light-foreground))]/50" />
+                          <Input
+                            placeholder="Search by name or email..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="border-[hsl(var(--divider))] pl-9"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    {filteredMembers.length === 0 ? (
+                      <div className="px-6 py-10 text-center text-sm text-[hsl(var(--section-light-foreground))]/60">
+                        {members.length === 0
+                          ? "No member signups yet."
+                          : "No members match your search."}
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-[hsl(var(--divider))] text-left text-[hsl(var(--section-light-foreground))]/70">
+                              <th className="px-6 py-3">Name</th>
+                              <th className="px-6 py-3">Email</th>
+                              <th className="px-6 py-3">University</th>
+                              <th className="px-6 py-3">Engagement</th>
+                              <th className="px-6 py-3">Newsletter</th>
+                              <th className="px-6 py-3">Created</th>
+                              <th className="px-6 py-3 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredMembers.map((m) => (
+                              <tr
+                                key={m.id}
+                                className="border-b border-[hsl(var(--divider))]/50 hover:bg-[hsl(var(--section-light))]/30"
+                              >
+                                <td className="px-6 py-3 text-[hsl(var(--section-light-foreground))]">
+                                  {m.full_name || "—"}
+                                </td>
+                                <td className="px-6 py-3 text-[hsl(var(--section-light-foreground))]/90">
+                                  {m.email}
+                                </td>
+                                <td className="px-6 py-3 text-[hsl(var(--section-light-foreground))]/80">
+                                  {m.university || "—"}
+                                </td>
+                                <td className="px-6 py-3 text-[hsl(var(--section-light-foreground))]/80">
+                                  {m.engagement_level || "—"}
+                                </td>
+                                <td className="px-6 py-3">
+                                  <label className="flex cursor-pointer items-center gap-2">
+                                    <Checkbox
+                                      checked={m.newsletter_consent}
+                                      onCheckedChange={() => handleNewsletterToggle(m)}
+                                    />
+                                    <span className="text-sm text-[hsl(var(--section-light-foreground))]/80">
+                                      {m.newsletter_consent ? "Yes" : "No"}
+                                    </span>
+                                  </label>
+                                </td>
+                                <td className="px-6 py-3 text-[hsl(var(--section-light-foreground))]/60">
+                                  {formatDate(m.created_at)}
+                                </td>
+                                <td className="px-6 py-3 text-right">
+                                  <div className="flex justify-end gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleEdit(m)}
+                                      className="text-[hsl(var(--section-light-foreground))]/80"
+                                      aria-label="Edit"
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setDeleteTarget({ type: "member", id: m.id })}
+                                      className="text-red-600 hover:text-red-700"
+                                      aria-label="Delete"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </Card>
 
-              {/* Newsletter table */}
-              <Card className="p-6 bg-white border-border overflow-x-auto">
-                <h2 className="text-2xl font-semibold mb-4">
-                  Newsletter signups
-                </h2>
-                {newsletterSubs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No newsletter signups yet.
-                  </p>
-                ) : (
-                  <table className="w-full text-sm border-collapse">
-                    <thead className="border-b border-border text-left">
-                      <tr className="text-muted-foreground">
-                        <th className="py-2 pr-4">Email</th>
-                        <th className="py-2 pr-4">Source</th>
-                        <th className="py-2 pr-4">Created</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {newsletterSubs.map((n) => (
-                        <tr key={n.id} className="border-b border-border/50">
-                          <td className="py-2 pr-4">{n.email}</td>
-                          <td className="py-2 pr-4">{n.source || "-"}</td>
-                          <td className="py-2 pr-4">
-                            {formatDateTime(n.created_at)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </Card>
+                  {/* Newsletter-only signups */}
+                  <Card className="overflow-hidden border-[hsl(var(--divider))] bg-white">
+                    <div className="border-b border-[hsl(var(--divider))] px-6 py-4">
+                      <h2 className="text-xl font-semibold text-[hsl(var(--section-light-foreground))]">
+                        Newsletter signups (only)
+                      </h2>
+                      <p className="mt-1 text-sm text-[hsl(var(--section-light-foreground))]/60">
+                        Emails that signed up for the newsletter without a full membership.
+                      </p>
+                    </div>
+                    {newsletterSubs.length === 0 ? (
+                      <div className="px-6 py-10 text-center text-sm text-[hsl(var(--section-light-foreground))]/60">
+                        No newsletter-only signups yet.
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-[hsl(var(--divider))] text-left text-[hsl(var(--section-light-foreground))]/70">
+                              <th className="px-6 py-3">Email</th>
+                              <th className="px-6 py-3">Source</th>
+                              <th className="px-6 py-3">Created</th>
+                              <th className="px-6 py-3 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {newsletterSubs.map((n) => (
+                              <tr
+                                key={n.id}
+                                className="border-b border-[hsl(var(--divider))]/50 hover:bg-[hsl(var(--section-light))]/30"
+                              >
+                                <td className="px-6 py-3 text-[hsl(var(--section-light-foreground))]">
+                                  {n.email}
+                                </td>
+                                <td className="px-6 py-3 text-[hsl(var(--section-light-foreground))]/80">
+                                  {n.source || "—"}
+                                </td>
+                                <td className="px-6 py-3 text-[hsl(var(--section-light-foreground))]/60">
+                                  {formatDate(n.created_at)}
+                                </td>
+                                <td className="px-6 py-3 text-right">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setDeleteTarget({ type: "newsletter", id: n.id })}
+                                    className="text-red-600 hover:text-red-700"
+                                    aria-label="Delete"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </Card>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </section>
+          </div>
+        </Section>
+      </main>
       <Footer />
+
+      <MemberEditModal
+        isOpen={editModalOpen}
+        onClose={() => { setEditModalOpen(false); setSelectedMember(null); }}
+        member={selectedMember}
+        onSaved={loadData}
+      />
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.type === "member"
+                ? "This will remove the member signup from the database. This action cannot be undone."
+                : "This will remove the newsletter signup. This action cannot be undone."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-[hsl(var(--divider))]">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
-};
-
-export default AdminMembers;
+}

@@ -9,11 +9,14 @@
  *   className="finisher-header-whatwedo"
  *   backgroundColor={themeColors.white}
  *   particleColors={[...defaultParticleColors]}
- *   count={6}
+ *   count={4}
  * />
+ *
+ * Performance: Animation pauses when the tab is hidden or when the element
+ * is off-screen (Intersection Observer) to reduce CPU/GPU load.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useId } from "react";
 import { themeColors, defaultParticleColors } from "@/theme/tokens";
 
 declare global {
@@ -43,7 +46,7 @@ export const FinisherBackground = ({
   className = "finisher-header-background",
   backgroundColor = themeColors.white,
   particleColors = [...defaultParticleColors],
-  count = 6,
+  count = 4,
   particleSize = { min: 300, max: 600, pulse: 0 },
   speed = {
     x: { min: 0.1, max: 0.3 },
@@ -57,33 +60,106 @@ export const FinisherBackground = ({
     addParticles?: (count: number) => void;
     destroy?: () => void;
   }>();
+  const uniqueClass = useId().replace(/:/g, "-");
+  const resolvedClassName = `${className}-${uniqueClass}`.replace(/^--/, "");
+  const inViewRef = useRef(false);
+  const isVisibleRef = useRef(!document.hidden);
 
   useEffect(() => {
     if (!window.FinisherHeader || !containerRef.current) return;
 
-    try {
-      instanceRef.current = new window.FinisherHeader({
-        className,
-        count,
-        size: particleSize,
-        speed,
-        colors: {
-          background: backgroundColor,
-          particles: particleColors,
-        },
-        opacity,
-        blending: "overlay",
-        shapes: ["c"],
-      });
-    } catch (err) {
-      console.error("Failed to init FinisherHeader:", err);
+    const runInit = () => {
+      if (!containerRef.current) return;
+      try {
+        instanceRef.current = new window.FinisherHeader({
+          className: resolvedClassName,
+          count,
+          size: particleSize,
+          speed,
+          colors: {
+            background: backgroundColor,
+            particles: particleColors,
+          },
+          opacity,
+          blending: "overlay",
+          shapes: ["c"],
+        });
+      } catch (err) {
+        console.error("Failed to init FinisherHeader:", err);
+      }
+    };
+
+    const destroy = () => {
+      instanceRef.current?.destroy?.();
+      instanceRef.current = undefined;
+    };
+
+    const maybeInit = () => {
+      if (inViewRef.current && isVisibleRef.current) runInit();
+    };
+
+    const el = containerRef.current;
+
+    // Only run when in viewport
+    const io = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        inViewRef.current = entry.isIntersecting;
+        if (entry.isIntersecting) {
+          maybeInit();
+        } else {
+          destroy();
+        }
+      },
+      { rootMargin: "80px", threshold: 0 }
+    );
+    io.observe(el);
+
+    // Pause when tab is hidden
+    const onVisibilityChange = () => {
+      isVisibleRef.current = !document.hidden;
+      if (document.hidden) {
+        destroy();
+      } else {
+        maybeInit();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    if (!document.hidden) {
+      const rect = el.getBoundingClientRect();
+      const inView = rect.top < window.innerHeight + 80 && rect.bottom > -80;
+      inViewRef.current = inView;
+      if (inView) {
+        requestAnimationFrame(() => {
+          if (el.isConnected) runInit();
+        });
+      }
     }
 
+    let lastW = 0;
+    let lastH = 0;
+    const resizeObserver = new ResizeObserver(() => {
+      const w = el.offsetWidth;
+      const h = el.offsetHeight;
+      if (lastW && lastH && (w !== lastW || h !== lastH) && inViewRef.current && isVisibleRef.current) {
+        destroy();
+        runInit();
+      }
+      lastW = w;
+      lastH = h;
+    });
+    resizeObserver.observe(el);
+
     return () => {
-      instanceRef.current?.destroy?.();
+      io.disconnect();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      resizeObserver.disconnect();
+      destroy();
     };
   }, [
-    className,
+    resolvedClassName,
     backgroundColor,
     particleColors,
     count,
@@ -93,7 +169,7 @@ export const FinisherBackground = ({
   ]);
 
   return (
-    <div ref={containerRef} className={`relative h-full w-full ${className}`}>
+    <div ref={containerRef} className={`relative h-full w-full min-h-[280px] ${resolvedClassName}`}>
       {/* Optional dot overlay - creates hole/lace effect */}
       {showDotOverlay && (
         <div

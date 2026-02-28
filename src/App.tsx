@@ -54,12 +54,14 @@ const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const Admin = lazy(() => import("./pages/Admin"));
 const AdminEvents = lazy(() => import("./pages/AdminEvents"));
 const AdminMembers = lazy(() => import("./pages/AdminMembers"));
+const AdminMemberAnalytics = lazy(() => import("./pages/AdminMemberAnalytics"));
 const AdminContent = lazy(() => import("./pages/AdminContent"));
 const AdminPartnerships = lazy(() => import("./pages/AdminPartnerships"));
 const AdminResources = lazy(() => import("./pages/AdminResources"));
 const AdminResearch = lazy(() => import("./pages/AdminResearch"));
 const AdminEducation = lazy(() => import("./pages/AdminEducation"));
 const AdminInsights = lazy(() => import("./pages/AdminInsights"));
+const AdminMail = lazy(() => import("./pages/AdminMail"));
 
 // ============================================================================
 // Configuration
@@ -141,6 +143,14 @@ const App = () => (
               }
             />
             <Route
+              path="/admin/members/analytics"
+              element={
+                <RequireAdmin>
+                  <AdminMemberAnalytics />
+                </RequireAdmin>
+              }
+            />
+            <Route
               path="/admin/content"
               element={
                 <RequireAdmin>
@@ -185,6 +195,14 @@ const App = () => (
               element={
                 <RequireAdmin>
                   <AdminInsights />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/mail"
+              element={
+                <RequireAdmin>
+                  <AdminMail />
                 </RequireAdmin>
               }
             />

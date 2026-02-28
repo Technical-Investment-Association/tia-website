@@ -13,6 +13,11 @@ interface SplitLayoutProps {
    * Vertically center both columns on large screens.
    */
   alignCenter?: boolean;
+  /**
+   * If true, desktop uses a 50/50 split with no gap so content goes edge-to-edge
+   * and meets in the middle (e.g. for full-bleed visuals).
+   */
+  noGap?: boolean;
   className?: string;
   leftClassName?: string;
   rightClassName?: string;
@@ -34,12 +39,17 @@ export const SplitLayout = ({
   right,
   reverseOnDesktop = false,
   alignCenter = false,
+  noGap = false,
   className,
   leftClassName,
   rightClassName,
 }: SplitLayoutProps) => {
-  const baseLeftCols = "col-span-12 lg:col-span-5";
-  const baseRightCols = "col-span-12 lg:col-span-5 lg:col-start-8";
+  const baseLeftCols = noGap
+    ? "col-span-12 lg:col-span-6"
+    : "col-span-12 lg:col-span-5";
+  const baseRightCols = noGap
+    ? "col-span-12 lg:col-span-6 lg:col-start-7"
+    : "col-span-12 lg:col-span-5 lg:col-start-8";
 
   const leftCols = reverseOnDesktop ? baseRightCols : baseLeftCols;
   const rightCols = reverseOnDesktop ? baseLeftCols : baseRightCols;
@@ -48,6 +58,7 @@ export const SplitLayout = ({
     <div
       className={cn(
         "grid grid-cols-12 items-stretch gap-y-10",
+        noGap && "lg:gap-x-0",
         alignCenter && "lg:items-center",
         className,
       )}

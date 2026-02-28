@@ -116,9 +116,8 @@ const Navigation = () => {
 
   // Route-driven navbar behavior
   const isAdminRoute = location.pathname.startsWith("/admin");
-  const isHome = location.pathname === "/";
 
-  // Scroll state (disabled on admin routes)
+  // Scroll state (disabled on admin routes). On home: transparent at top, solid when scrolled.
   const [scrolled, setScrolled] = useState(false);
   const effectiveScrolled = isAdminRoute ? true : scrolled;
 
@@ -149,11 +148,9 @@ const Navigation = () => {
    * and add the toggle back in the admin drawer.
    */
 
-  // Join button visibility:
-  // - Desktop: keep your original behavior (only when not at top of home)
-  // - Mobile: ALWAYS show Join (including at top of home), because the navbar covers the hero button.
-  const showJoinDesktop = !isHome || effectiveScrolled;
-  const showJoinMobile = !isHome || effectiveScrolled;
+  // Join button: always visible on all public pages (including home)
+  const showJoinDesktop = true;
+  const showJoinMobile = true;
 
   useEffect(() => {
     if (isAdminRoute) {
@@ -384,17 +381,12 @@ const Navigation = () => {
             </div>
 
             <div className="flex items-center justify-between">
-              <div
-                className={`
-                  flex items-center transition-[gap] duration-300
-                  ${effectiveScrolled ? "gap-8" : "gap-10"}
-                `}
-              >
+              <div className="flex items-center gap-8">
                 {navLinks.map((link) => (
                   <Link
                     key={link.path}
                     to={link.path}
-                    className={`text-sm font-medium transition-colors duration-200
+                    className={`text-sm font-medium
                       ${
                         effectiveScrolled
                           ? "text-slate-700 hover:text-slate-900"

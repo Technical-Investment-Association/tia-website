@@ -4,7 +4,8 @@ This folder contains documentation for developers working on the TIA (Technical 
 
 | Document | Purpose |
 |----------|---------|
-| [**SETUP.md**](./SETUP.md) | Environment, Firebase, running locally, build and deploy |
+| [**SETUP.md**](./SETUP.md) | Environment, Firebase, running locally, **Firestore/Storage rules and indexes**, build and deploy |
+| [**ADMIN_UI.md**](./ADMIN_UI.md) | Admin area standards: no outlines, grey dropdowns, pill bar sub-nav, sub-page title style |
 | [**ARCHITECTURE.md**](./ARCHITECTURE.md) | Codebase structure, routing, auth, design system, performance |
 | [**HANDOVER.md**](./HANDOVER.md) | Onboarding, where things live, common tasks, handover checklist |
 

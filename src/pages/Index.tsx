@@ -17,13 +17,12 @@
  * - useUpcomingEvents: Data fetching hook
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import {
@@ -42,6 +41,14 @@ import { BeigeSplitCard } from "@/components/layout/BeigeSplitCard";
 const Index = () => {
   const { events, loading: eventsLoading, error } = useUpcomingEvents(3);
   const [counterActive, setCounterActive] = useState(false);
+  const [memberCount, setMemberCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/membership/count")
+      .then((res) => res.ok ? res.json() : { count: 0 })
+      .then((data: { count: number }) => setMemberCount(data.count))
+      .catch(() => setMemberCount(0));
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,12 +97,12 @@ const Index = () => {
       {/* Unified grid layout for all sections */}
       <main className="bg-white">
         {/* ================================================================
-            UPCOMING EVENTS SECTION
+            UPCOMING EVENTS SECTION (hidden when no upcoming events)
             ================================================================ */}
+        {(eventsLoading || error || events.length > 0) && (
         <Section>
           <div className="grid-inner">
             <div className="col-span-12">
-              <Separator className="w-16 mb-6 bg-[hsl(var(--divider))]" />
               <div className="flex items-baseline justify-between mb-6">
                 <h2 className="text-4xl md:text-3xl text-font-bold mb-10 text-[hsl(var(--section-light-foreground))]">
                   Upcoming events
@@ -107,7 +114,7 @@ const Index = () => {
 
               {/* Error state */}
               {error && (
-                <div className="border-t border-b border-[hsl(var(--divider))] py-10 text-sm text-red-600">
+                <div className="py-10 text-sm text-red-600">
                   <p>{error}</p>
                 </div>
               )}
@@ -115,7 +122,7 @@ const Index = () => {
               {/* Loaded with events */}
               {!eventsLoading && !error && events.length > 0 && (
                 <>
-                  <div className="border-t border-b border-[hsl(var(--divider))]/40 md:flex md:divide-x divide-[hsl(var(--divider))]/40 divide-y md:divide-y-0">
+                  <div className="md:flex md:divide-x divide-[hsl(var(--divider))] divide-y md:divide-y-0">
                     {events.map((event) => (
                       <EventCardCompact key={event.id} event={event} />
                     ))}
@@ -131,16 +138,10 @@ const Index = () => {
                   </div>
                 </>
               )}
-
-              {/* Loaded, but no events */}
-              {!eventsLoading && !error && events.length === 0 && (
-                <div className="border-t border-b border-[hsl(var(--divider))] py-10 text-sm text-[hsl(var(--section-light-foreground))]/70">
-                  <p>No upcoming events right now. Check back soon.</p>
-                </div>
-              )}
             </div>
           </div>
         </Section>
+        )}
 
         {/* ================================================================
             COMMUNITY / SKILLS SECTION
@@ -161,7 +162,10 @@ const Index = () => {
                     Community
                   </span>
                   <p className="text-6xl sm:text-7xl font-light leading-none text-[hsl(var(--section-light-foreground))]">
-                    <AnimatedCounter target={145} active={counterActive} />
+                    <AnimatedCounter
+                      target={memberCount ?? 0}
+                      active={counterActive && memberCount !== null}
+                    />
                   </p>
                   <p className="text-base text-[hsl(var(--section-light-foreground))]/70">
                     active members
@@ -219,7 +223,6 @@ const Index = () => {
               themeColors.accentMint,
               themeColors.accentTaupe,
             ]}
-            className="xl:h-[540px] 3xl:h-[620px]"
           />
         </Section>
 
@@ -229,31 +232,30 @@ const Index = () => {
         <Section>
           <div className="grid-inner">
             <div className="col-span-12">
-              <Separator className="w-16 mb-8 mx-auto bg-[hsl(var(--divider))]" />
-              <h2 className="text-4xl text-font-bold mb-10 text-center text-[hsl(var(--section-light-foreground))]">
+              <h2 className="text-4xl text-font-bold mb-20 text-center text-[hsl(var(--section-light-foreground))]">
                 Partnerships
               </h2>
 
-              <div className="space-y-12">
-                {/* Corporate partnerships block */}
+              <div className="space-y-28">
+                {/* Corporate partnerships (no subheading – implied) */}
                 <div>
                   <CorporatePartnershipLogoGrid />
                 </div>
 
-                {/* Student club partnerships block*/}
+                {/* Allied student clubs block */}
                 <div>
-                  <h3 className="text-xl font-normal mb-3 text-center text-[hsl(var(--section-light-foreground))]">
-                    Student club partnerships
+                  <h3 className="text-2xl font-normal mb-8 text-center text-[hsl(var(--section-light-foreground))]/65">
+                    Allied student clubs
                   </h3>
                   <StudentClubPartnershipLogoGrid />
                 </div>
               </div>
 
-              <div className="text-center mt-16">
+              <div className="text-center mt-28 mb-4">
                 <Link to="/partnerships">
                   <Button
                     className="rounded-full px-8 py-3 text-base font-medium
-                       bg-accent-mint text-[hsl(var(--section-light-foreground))]
+                       bg-transparent border-2 border-black text-black
                        hover:bg-black hover:text-white
                        transition-all duration-200"
                   >

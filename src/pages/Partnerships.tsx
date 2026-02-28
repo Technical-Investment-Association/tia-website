@@ -3,18 +3,17 @@
 import type { ReactNode } from "react";
 import { useState, useCallback, useMemo, lazy, Suspense } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ArrowRight } from "lucide-react";
 
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Hero } from "@/components/ui/hero";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import {
   CorporatePartnershipLogoGrid,
   StudentClubPartnershipLogoGrid,
 } from "@/components/PartnershipLogoGrid";
-import { themeColors, partnershipsParticleColors } from "@/theme/tokens";
+import { themeColors } from "@/theme/tokens";
 import { Section } from "@/components/layout/Section";
 import { BeigeSplitCard } from "@/components/layout/BeigeSplitCard";
 
@@ -137,7 +136,6 @@ const ExpandableSection = ({
   onToggle,
 }: ExpandableSectionProps) => {
   const prefersReducedMotion = useReducedMotion();
-  const isActiveHeader = isOpen || isHovered;
 
   return (
     <div
@@ -149,7 +147,7 @@ const ExpandableSection = ({
         transition: prefersReducedMotion
           ? "none"
           : `opacity 200ms ease-out ${index * 30}ms`,
-        willChange: isDimmed || isActiveHeader ? "opacity" : "auto",
+        willChange: isDimmed || isOpen ? "opacity" : "auto",
       }}
     >
       <button
@@ -161,9 +159,9 @@ const ExpandableSection = ({
           {section.title}
         </h2>
         <ChevronDown
-          className="h-4 w-4 text-[hsl(var(--section-light-foreground))]/60"
+          className="h-4 w-4 shrink-0 text-[hsl(var(--section-light-foreground))]/60"
           style={{
-            transform: isActiveHeader ? "rotate(180deg)" : "rotate(0deg)",
+            transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
             transition: prefersReducedMotion
               ? "none"
               : "transform 250ms ease-out",
@@ -321,71 +319,66 @@ const Partnerships = () => {
               </>
             }
             cta={
-              <Button
-                asChild
-                size="lg"
-                className="
-    group
-    rounded-full px-7 py-2 text-sm md:text-base font-medium
-    bg-white text-black border-none
-    transition-colors duration-200
-    hover:bg-primary hover:text-white
-  "
+              <a
+                href="mailto:partnerships@tiaassociation.com"
+                className="group inline-flex items-center text-sm md:text-base font-medium
+                   text-[hsl(var(--section-light-foreground))]/80
+                   hover:text-[hsl(var(--section-light-foreground))]"
               >
-                <a
-                  href="mailto:partnerships@tiaassociation.com"
-                  className="inline-flex items-center gap-2"
-                >
-                  Start a conversation
-                  <span
-                    className="
-        inline-block transition-transform duration-200 
-        group-hover:translate-x-1
-      "
-                  >
-                    →
-                  </span>
-                </a>
-              </Button>
+                <span>Start a conversation</span>
+                <ArrowRight
+                  className="ml-1 h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
+                  aria-hidden="true"
+                />
+              </a>
             }
             animationColors={[
               themeColors.accentTeal,
               themeColors.accentTaupe,
               themeColors.accentOlive,
             ]}
-            className="lg:h-section 3xl:h-section-lg"
           />
         </Section>
 
-        {/* Our partners */}
+        {/* Partners section – same structure as Index */}
         <Section>
-          <div className="grid-inner pb-20">
-            <motion.div
-              className="col-span-12"
-              initial={prefersReducedMotion ? undefined : { opacity: 0, y: 24 }}
-              whileInView={
-                prefersReducedMotion ? undefined : { opacity: 1, y: 0 }
-              }
-              viewport={{ once: true, amount: 0.25 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-            >
-              <Separator className="w-16 mb-8 mx-auto bg-[hsl(var(--divider))]" />
-              <h2 className="text-3xl md:text-4xl mb-10 text-center text-[hsl(var(--section-light-foreground))]">
-                Our partners
+          <div className="grid-inner">
+            <div className="col-span-12">
+              <h2 className="text-4xl text-font-bold mb-20 text-center text-[hsl(var(--section-light-foreground))]">
+                Partnerships
               </h2>
 
-              <div className="space-y-12">
+              <div className="space-y-28">
+                {/* Corporate partnerships (no subheading – implied) */}
                 <div>
                   <CorporatePartnershipLogoGrid />
                 </div>
+
+                {/* Allied student clubs */}
                 <div>
-                  <h3 className="text-xl font-normal mb-3 text-center text-[hsl(var(--section-light-foreground))]">
-                    Student club partnerships
+                  <h3 className="text-2xl font-normal mb-8 text-center text-[hsl(var(--section-light-foreground))]/65">
+                    Allied student clubs
                   </h3>
                   <StudentClubPartnershipLogoGrid />
                 </div>
               </div>
-            </motion.div>
+
+              <div className="text-center mt-28 mb-4">
+                <a
+                  href="mailto:partnerships@tiaassociation.com"
+                  className="inline-block"
+                >
+                  <Button
+                    className="rounded-full px-8 py-3 text-base font-medium
+                       bg-transparent border-2 border-black text-black
+                       hover:bg-black hover:text-white
+                       transition-all duration-200"
+                  >
+                    Partner with us
+                  </Button>
+                </a>
+              </div>
+            </div>
           </div>
         </Section>
       </main>

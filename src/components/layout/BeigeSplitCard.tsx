@@ -21,7 +21,8 @@ interface BeigeSplitCardProps {
    */
   body?: ReactNode;
   /**
-   * Optional call-to-action element (typically a Button wrapped in a Link or <a>).
+   * Optional call-to-action (link + arrow style, e.g. "Explore our events").
+   * Renders below the body on the text side.
    */
   cta?: ReactNode;
   /**
@@ -65,8 +66,8 @@ export const BeigeSplitCard = ({
   className,
 }: BeigeSplitCardProps) => {
   const textContent = (
-    <div className="flex px-5 py-10 lg:items-center lg:px-10">
-      <div className="flex flex-col gap-4 lg:mx-auto lg:w-[80%] text-left">
+    <div className="flex h-full w-full flex-col items-center justify-center px-6 py-12 lg:px-10 lg:py-16">
+      <div className="flex w-full max-w-xl flex-col items-center gap-4 text-center">
         {eyebrow && (
           <p className="text-xs uppercase tracking-[0.2em] text-[hsl(var(--section-light-foreground))]/60">
             {eyebrow}
@@ -94,30 +95,42 @@ export const BeigeSplitCard = ({
     </div>
   );
 
-  const resolvedVisual =
-    visual ||
-    (animationColors && animationColors.length
-      ? (
-        <figure className="relative w-full h-full">
-          <FinisherBackground
-            className="finisher-header-card"
-            backgroundColor={themeColors.sectionCream}
-            particleColors={animationColors}
-            count={6}
-            particleSize={{ min: 260, max: 520, pulse: 0 }}
-            speed={{
-              x: { min: 0.1, max: 0.3 },
-              y: { min: 0.1, max: 0.3 },
-            }}
-            opacity={{ center: 0.9, edge: 0 }}
-            showDotOverlay={true}
-          />
-        </figure>
-      )
-      : null);
+  const resolvedVisual = visual ? (
+    <div className="absolute inset-0 overflow-hidden">
+      <div
+        className="absolute inset-0 [&>img]:h-full [&>img]:w-full [&>img]:object-cover"
+        style={{ transform: "scale(1.15)" }}
+      >
+        {visual}
+      </div>
+    </div>
+  ) : (
+    animationColors &&
+    animationColors.length ? (
+      <div
+        className="absolute inset-0"
+        style={{ transform: "scale(1.15)", transformOrigin: "center center" }}
+      >
+        <FinisherBackground
+          className="finisher-header-card absolute inset-0 h-full w-full"
+          backgroundColor={themeColors.sectionCream}
+          particleColors={animationColors.slice(0, 2)}
+          count={2}
+          particleSize={{ min: 260, max: 520, pulse: 0 }}
+          speed={{
+            x: { min: 0.1, max: 0.3 },
+            y: { min: 0.1, max: 0.3 },
+          }}
+          opacity={{ center: 0.9, edge: 0 }}
+          showDotOverlay={true}
+        />
+      </div>
+    )
+      : null
+  );
 
   const visualContent = (
-    <div className="w-full h-full">
+    <div className="relative h-full min-h-[280px] w-full overflow-hidden">
       {resolvedVisual}
     </div>
   );
@@ -129,7 +142,7 @@ export const BeigeSplitCard = ({
     <div className="grid-inner">
       <div className="col-span-12">
         <div className={cn("bg-section-cream", className)}>
-          <SplitLayout alignCenter left={left} right={right} />
+          <SplitLayout noGap left={left} right={right} />
         </div>
       </div>
     </div>
