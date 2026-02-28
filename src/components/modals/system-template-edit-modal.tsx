@@ -58,7 +58,7 @@ export function SystemTemplateEditModal({
 }: SystemTemplateEditModalProps) {
   const { user } = useAuth();
   const normalizedId = normalizeTemplateId(templateId);
-  const meta = TEMPLATE_META[normalizedId];
+  const templateMeta = TEMPLATE_META[normalizedId];
   const previewUrl = `/api/admin/email-preview?template=${templatePreviewSlug(normalizedId)}`;
   const [contentHtml, setContentHtml] = useState("");
   const [loading, setLoading] = useState(false);
@@ -100,8 +100,8 @@ export function SystemTemplateEditModal({
       await setSystemTemplate(
         normalizedId,
         {
-          name: meta.name,
-          description: meta.purpose,
+          name: templateMeta.name,
+          description: templateMeta.purpose,
           content_html: contentHtml.trim(),
         },
         user?.email ?? user?.uid ?? ""
@@ -128,7 +128,7 @@ export function SystemTemplateEditModal({
             </h3>
             <p className="mt-2 text-sm text-gray-600">
               You are permanently changing the standard mail sent out for{" "}
-              <strong>{meta.purpose}</strong>. This will affect all future
+              <strong>{templateMeta.purpose}</strong>. This will affect all future
               emails of this type. Continue?
             </p>
             <div className="mt-6 flex justify-end gap-3">
@@ -155,7 +155,7 @@ export function SystemTemplateEditModal({
       <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
         <div className="flex shrink-0 items-center justify-between border-b border-[hsl(var(--divider))] px-6 py-4">
           <h2 className="text-xl font-semibold text-gray-900">
-            Edit: {meta.name}
+            Edit: {templateMeta.name}
           </h2>
           <button
             type="button"
@@ -185,7 +185,7 @@ export function SystemTemplateEditModal({
                   title="Template preview"
                   src={previewUrl}
                   className="h-[480px] w-full border-0 bg-white"
-                  sandbox="allow-same-origin"
+                  sandbox="allow-same-origin allow-scripts"
                 />
               </div>
             </div>
@@ -194,7 +194,7 @@ export function SystemTemplateEditModal({
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-gray-600">
-                Placeholders: {meta.placeholders}. They are replaced when the
+                Placeholders: {templateMeta.placeholders}. They are replaced when the
                 email is sent.
               </p>
               <div className="space-y-2">

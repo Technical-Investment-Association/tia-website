@@ -12,7 +12,7 @@ import {
 import {
   getWelcomeEmailHtmlResolved,
   getProfileUpdatedEmailHtmlResolved,
-} from "../../../server/emailTemplatesServer";
+} from "../../server/emailTemplatesServer";
 
 export default async function handler(req: { method?: string; query?: Record<string, string> }, res: { setHeader: (k: string, v: string) => void; status: (n: number) => { json: (o: object) => void; send: (s: string) => void; end: () => void } }): Promise<void> {
   if (req.method !== "GET") {

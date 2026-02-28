@@ -17,7 +17,7 @@
  * - useUpcomingEvents: Data fetching hook
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
@@ -41,6 +41,14 @@ import { BeigeSplitCard } from "@/components/layout/BeigeSplitCard";
 const Index = () => {
   const { events, loading: eventsLoading, error } = useUpcomingEvents(3);
   const [counterActive, setCounterActive] = useState(false);
+  const [memberCount, setMemberCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/membership/count")
+      .then((res) => res.ok ? res.json() : { count: 0 })
+      .then((data: { count: number }) => setMemberCount(data.count))
+      .catch(() => setMemberCount(0));
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -154,7 +162,10 @@ const Index = () => {
                     Community
                   </span>
                   <p className="text-6xl sm:text-7xl font-light leading-none text-[hsl(var(--section-light-foreground))]">
-                    <AnimatedCounter target={145} active={counterActive} />
+                    <AnimatedCounter
+                      target={memberCount ?? 0}
+                      active={counterActive && memberCount !== null}
+                    />
                   </p>
                   <p className="text-base text-[hsl(var(--section-light-foreground))]/70">
                     active members

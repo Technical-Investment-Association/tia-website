@@ -38,16 +38,18 @@ async function main() {
 
   let membershipHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
   let notMeHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
+  let membershipCountHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
   let emailPreviewHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
   let sendMailHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
   let loadError: Error | null = null;
 
   async function ensureHandlers() {
     if (loadError) throw loadError;
-    if (membershipHandler && notMeHandler && emailPreviewHandler && sendMailHandler) return;
+    if (membershipHandler && notMeHandler && membershipCountHandler && emailPreviewHandler && sendMailHandler) return;
     try {
       membershipHandler = (await import("../src/api/membership")).default;
       notMeHandler = (await import("../src/api/membership/not-me")).default;
+      membershipCountHandler = (await import("../src/api/membership/count")).default;
       emailPreviewHandler = (await import("../src/api/admin/email-preview")).default;
       sendMailHandler = (await import("../src/api/admin/send-mail")).default;
       console.log("[dev-api-server] Handlers loaded (Firebase Admin OK).");
@@ -106,6 +108,11 @@ async function main() {
       if (req.method === "GET" && pathname === "/api/membership/not-me") {
         await ensureHandlers();
         await notMeHandler!(reqAugmented, resHelpers);
+        return;
+      }
+      if (req.method === "GET" && pathname === "/api/membership/count") {
+        await ensureHandlers();
+        await membershipCountHandler!(reqAugmented, resHelpers);
         return;
       }
       if (req.method === "GET" && pathname.startsWith("/api/admin/email-preview")) {

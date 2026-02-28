@@ -224,7 +224,7 @@ service cloud.firestore {
              data.content_html is string &&
              data.updated_at is timestamp &&
              data.updated_by is string &&
-             (!("description" in data) || data.description is string);
+             (!("description" in data) || data.description is string || data.description == null);
     }
     match /email_templates/{id} {
       allow read: if isAdmin();
