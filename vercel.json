@@ -1,8 +1,11 @@
 {
   "buildCommand": "pnpm run build",
+  "framework": null,
+  "outputDirectory": ".",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/assets/(.*)", "destination": "/dist/assets/$1" },
+    { "source": "/(.*)", "destination": "/dist/index.html" }
   ],
   "headers": [
     {
