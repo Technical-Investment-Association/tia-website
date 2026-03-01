@@ -30,10 +30,9 @@ function checkEnv() {
 }
 
 async function main() {
-  if (!checkEnv()) {
-    console.error("[dev-api-server] Exiting: set FIREBASE_* in .env.local and try again.");
-    process.exit(1);
-    return;
+  const hasFirebase = checkEnv();
+  if (!hasFirebase) {
+    console.warn("[dev-api-server] No FIREBASE_* in .env.local – API will start but most routes will 500 until you set them. GET /api/membership/count will still return { count: 0 }.");
   }
 
   let membershipHandler: ((req: unknown, res: unknown) => Promise<void>) | null = null;
@@ -71,6 +70,18 @@ async function main() {
       console.error("[dev-api-server] Failed to load API handlers:", loadError.message);
       console.error(loadError.stack);
       throw loadError;
+    }
+  }
+
+  /** Load and run only the count handler so /api/membership/count never 500s (no Firebase required). */
+  async function handleCountOnly(reqAugmented: unknown, resHelpers: { setHeader: (n: string, v: string) => void; status: (n: number) => { json: (o: object) => void }; json: (o: object) => void }) {
+    try {
+      const { default: countHandler } = await import("../src/api/membership/count");
+      await countHandler(reqAugmented, resHelpers);
+    } catch (e) {
+      console.error("[dev-api-server] /api/membership/count:", e instanceof Error ? e.message : e);
+      resHelpers.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+      resHelpers.status(200).json({ count: 0 });
     }
   }
 
@@ -128,8 +139,7 @@ async function main() {
         return;
       }
       if (req.method === "GET" && pathname === "/api/membership/count") {
-        await ensureHandlers();
-        await membershipCountHandler!(reqAugmented, resHelpers);
+        await handleCountOnly(reqAugmented, resHelpers);
         return;
       }
       if ((req.method === "GET" || req.method === "POST") && pathname === "/api/membership/update-profile") {
