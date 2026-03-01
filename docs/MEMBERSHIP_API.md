@@ -90,9 +90,9 @@ If prompted, log in with `vercel login` (device flow). Then open the URL Vercel 
   Your `vercel.json` currently rewrites all routes to `/`. Vercel runs **API routes before rewrites**, so `/api/membership` and `/api/membership/not-me` are still served by the serverless functions. No change to `vercel.json` is required for the API to work.
 
 - **405 on POST /api/membership**  
-  If the Join form gets **405 Method Not Allowed** in production, the request may be hitting the static app instead of the serverless function. In **Vercel → Project → Settings → Build & Development**:
-  - Ensure **Output Directory** is **empty** or set to **`.`** (project root). If it is set to **`dist`** only, Vercel deploys only the contents of `dist/` and the **`api/`** folder is not included, so `/api/membership` has no function and falls through to the SPA (which returns 405 for POST).
-  - Build command should be **`pnpm run build`** (or `vite build && node scripts/build-api.mjs`) so that `api/*.js` bundles are produced before deploy. The repo’s `vercel.json` sets `buildCommand` to `pnpm run build` so the API bundle step runs.
+  If the Join form gets **405 Method Not Allowed** in production, the request may be hitting the static app instead of the serverless function. The project uses the **Build Output API** (build produces `.vercel/output` with static files and serverless functions). In **Vercel → Project → Settings → Build & Development**:
+  - Leave **Output Directory** **empty** so Vercel uses the `.vercel/output` produced by the build. Do **not** set it to `dist` (that would omit the API and cause 405).
+  - Build command is **`pnpm run build`**, which runs Vite, bundles `api/*.js`, then writes `.vercel/output` (static from `dist/`, functions from `api/*.js`, and `config.json` with correct JS `Content-Type` overrides to fix the “module script MIME type” error on reload).
 
 ### 3. Getting Firebase Admin credentials
 

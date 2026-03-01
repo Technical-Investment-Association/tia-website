@@ -8,7 +8,7 @@
     "dev:api": "vercel dev",
     "dev:api-server": "tsx scripts/dev-api-server.ts",
     "dev:full": "concurrently \"pnpm run dev\" \"pnpm run dev:api-server\"",
-    "build": "vite build && node scripts/build-api.mjs",
+    "build": "vite build && node scripts/build-api.mjs && node scripts/vercel-output.mjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
