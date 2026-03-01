@@ -45,7 +45,7 @@ const Index = () => {
 
   useEffect(() => {
     fetch("/api/membership/count")
-      .then((res) => res.ok ? res.json() : { count: 0 })
+      .then((res) => (res.ok ? res.json() : res.json().catch(() => ({ count: 0 }))))
       .then((data: { count: number }) => setMemberCount(data.count))
       .catch(() => setMemberCount(0));
   }, []);
