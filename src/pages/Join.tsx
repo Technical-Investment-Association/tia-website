@@ -177,21 +177,9 @@ export default function Join() {
         return;
       }
       if (result.status === "exists") {
-        setSubmitting(true);
-        try {
-          const sendResult = await callMembershipApi({
-            mode: "send_update_link",
-            data: { email: payload.data.email },
-          });
-          if (sendResult.status === "email_sent") {
-            setExistingEmail(payload.data.email);
-            setExistingEmailSent(true);
-          } else {
-            setError("Could not send the email. Please try again later.");
-          }
-        } catch {
-          setError("Could not send the email. Please try again later.");
-        }
+        // Existing membership: show info modal instead of sending update email
+        setExistingEmail(payload.data.email);
+        setExistingEmailSent(true);
         setSubmitting(false);
         return;
       }
@@ -542,10 +530,17 @@ export default function Join() {
                 This email is already in our database
               </h3>
               <p className="mb-4 text-sm text-[hsl(var(--section-light-foreground))]/80">
-                We have sent an email to <strong>{existingEmail}</strong> with a link to update your profile or confirm it&apos;s you. Please check your inbox and use that link to update your details.
+                The address <strong>{existingEmail}</strong> seems to already be registered in our membership database.
               </p>
               <p className="mb-6 text-sm text-[hsl(var(--section-light-foreground))]/70">
-                If you don&apos;t see the email, check your spam folder.
+                If you believe this is incorrect or would like to change something about your membership, please contact{" "}
+                <a
+                  href="mailto:contact@tiaassociation.com"
+                  className="underline underline-offset-2 text-[hsl(var(--section-light-foreground))]"
+                >
+                  contact@tiaassociation.com
+                </a>
+                .
               </p>
               <div className="flex justify-end">
                 <Button

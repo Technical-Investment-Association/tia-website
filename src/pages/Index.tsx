@@ -41,14 +41,8 @@ import { BeigeSplitCard } from "@/components/layout/BeigeSplitCard";
 const Index = () => {
   const { events, loading: eventsLoading, error } = useUpcomingEvents(3);
   const [counterActive, setCounterActive] = useState(false);
-  const [memberCount, setMemberCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    fetch("/api/membership/count")
-      .then((res) => (res.ok ? res.json() : res.json().catch(() => ({ count: 0 }))))
-      .then((data: { count: number }) => setMemberCount(data.count))
-      .catch(() => setMemberCount(0));
-  }, []);
+  // Temporarily hardcode member count while API is being stabilised
+  const memberCount = 145;
 
   return (
     <div className="min-h-screen bg-background">
