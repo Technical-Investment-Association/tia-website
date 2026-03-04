@@ -60,6 +60,47 @@ const inputLikeSelectClass =
   "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 md:text-sm text-[hsl(var(--section-light-foreground))]";
 
 export default function Join() {
+  // Temporary: route signup to Google Form while we stabilise the internal membership flow.
+  const googleFormUrl =
+    "https://docs.google.com/forms/d/e/1FAIpQLSfdjqQXcTbdAB4WqCfq2vBo5yeGOIinAqqsVrv7vU-dsSiq8A/viewform?usp=header";
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navigation />
+      <Hero
+        title="Join TIA"
+        description="Become part of a community of technically minded students interested in finance and innovation."
+        height={300}
+      />
+      <main className="grid-outer bg-white">
+        <Section>
+          <div className="grid-inner py-16 md:py-20">
+            <div className="col-span-12 md:col-span-8 md:col-start-3 lg:col-span-6 lg:col-start-4 space-y-6">
+              <p className="leading-relaxed text-[hsl(var(--section-light-foreground))]/70">
+                While we finish rolling out the new membership system, please use our short Google
+                Form to sign up as a member of Technical Investment Association.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-4">
+                <a
+                  href={googleFormUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex"
+                >
+                  <Button size="lg" className="px-8">
+                    Open signup form
+                  </Button>
+                </a>
+              </div>
+            </div>
+          </div>
+        </Section>
+      </main>
+      <Footer />
+    </div>
+  );
+
+  // Legacy internal signup implementation kept below for future reactivation.
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
