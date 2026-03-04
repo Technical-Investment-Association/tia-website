@@ -9,6 +9,10 @@ import { adminDb, adminAuth } from "../../server/firebaseAdmin";
 import { getCampaignEmailHtml } from "../../lib/email-templates";
 import { sendBulkEmails } from "../../server/emailSender";
 
+// Temporary switch to disable outbound admin campaign emails while keeping UI intact.
+// Set EMAILS_ENABLED to true later if/when bulk email sending should be re-enabled.
+const EMAILS_ENABLED = false;
+
 function getFrom(): string {
   return process.env.RESEND_FROM_EMAIL || "Technical Investment Association <membership@tiaassociation.com>";
 }
@@ -117,8 +121,8 @@ export default async function handler(
     return;
   }
 
-  if (!process.env.RESEND_API_KEY) {
-    res.status(503).json({ error: "Resend not configured (RESEND_API_KEY)" });
+  if (!EMAILS_ENABLED || !process.env.RESEND_API_KEY) {
+    res.status(503).json({ error: "Email sending is temporarily disabled" });
     return;
   }
 

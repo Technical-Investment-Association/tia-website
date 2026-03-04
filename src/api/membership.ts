@@ -13,6 +13,10 @@ import { getUpdateProfileLinkEmailHtml } from "@/lib/email-templates";
 // Resend is optional: use placeholder when no key so the server can start (emails only sent when RESEND_API_KEY is set)
 const resend = new Resend(process.env.RESEND_API_KEY || "re_local_dev_no_send");
 
+// Temporary switch: disable all outbound membership emails while keeping signup logic.
+// Set EMAILS_ENABLED to true later if/when email flows should be re-enabled.
+const EMAILS_ENABLED = false;
+
 const DEFAULT_FROM = "Technical Investment Association <membership@tiaassociation.com>";
 function getFromAddress(): string {
   return process.env.RESEND_FROM_EMAIL || DEFAULT_FROM;
@@ -160,7 +164,7 @@ export default async function handler(req: any, res: any) {
       });
       const updateProfileUrl = `${baseUrl.replace(/\/$/, "")}/profile/update?token=${token}`;
       const { unsubscribeUrl, deactivateProfileUrl } = await createUnsubscribeAndDeactivateUrls(email);
-      if (process.env.RESEND_API_KEY) {
+      if (EMAILS_ENABLED && process.env.RESEND_API_KEY) {
         const docData = snap.data()!;
         const html = getUpdateProfileLinkEmailHtml({
           full_name: (docData.full_name as string) || undefined,
@@ -199,7 +203,7 @@ export default async function handler(req: any, res: any) {
         });
 
         // Welcome email (no confirm link in body) + separate Confirm email
-        if (process.env.RESEND_API_KEY) {
+        if (EMAILS_ENABLED && process.env.RESEND_API_KEY) {
           const baseUrlForConfirm = getBaseUrl();
           const { unsubscribeUrl, deactivateProfileUrl } = await createUnsubscribeAndDeactivateUrls(email);
           const welcomeHtml = await getWelcomeEmailHtmlResolved({
@@ -281,7 +285,7 @@ export default async function handler(req: any, res: any) {
       const { unsubscribeUrl, deactivateProfileUrl } = await createUnsubscribeAndDeactivateUrls(email);
 
       // "Profile updated" email with "Not me" link
-      if (process.env.RESEND_API_KEY) {
+      if (EMAILS_ENABLED && process.env.RESEND_API_KEY) {
         const html = await getProfileUpdatedEmailHtmlResolved({
           full_name: data.full_name as string | undefined,
           email,
